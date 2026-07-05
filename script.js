@@ -73,7 +73,7 @@ function analyze() {
     const digitColorMap = createDigitColorMap(validNumbers, matches, validGroups);
     
     // Render grid
-    renderGrid(validNumbers, matches, digitColorMap);
+    renderGrid(validNumbers, matches, digitColorMap, validGroups);
     
     // Show summary
     const summaryText = logicEnabled 
@@ -83,7 +83,8 @@ function analyze() {
     resultsContainer.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
 
-// Calculate matches for each row
+// Calculate matches for each row using CORRECTED formula
+// For Row N: unit digit + Row(N+1) ten & unit digits + Row(N+2) TEN digit
 function calculateMatches(numbers) {
     const matches = [];
     
@@ -98,14 +99,14 @@ function calculateMatches(numbers) {
         const nextNum = numbers[i + 1];
         const nextNextNum = numbers[i + 2];
         
-        // Extract digits
-        const currentUnitDigit = parseInt(currentNum[2]); // Last digit
-        const nextTenDigit = parseInt(nextNum[1]); // Middle digit
-        const nextUnitDigit = parseInt(nextNum[2]); // Last digit
-        const nextNextHundredDigit = parseInt(nextNextNum[0]); // First digit
+        // Extract digits according to CORRECTED formula
+        const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit (position 2)
+        const nextTenDigit = parseInt(nextNum[1]); // Row (N+1): ten digit (position 1)
+        const nextUnitDigit = parseInt(nextNum[2]); // Row (N+1): unit digit (position 2)
+        const nextNextTenDigit = parseInt(nextNextNum[1]); // Row (N+2): TEN digit (position 1) - CORRECTED!
         
         // Sum all individual digits
-        const sum = currentUnitDigit + nextTenDigit + nextUnitDigit + nextNextHundredDigit;
+        const sum = currentUnitDigit + nextTenDigit + nextUnitDigit + nextNextTenDigit;
         const sumUnitDigit = sum % 10;
         
         // Get current row's hundred digit
@@ -157,11 +158,11 @@ function createDigitColorMap(numbers, matches, validGroups) {
         group.forEach(rowIndex => {
             if (!logicEnabled) return;
             
-            // For each matching row, color the specific digits involved
+            // For each matching row, color the specific digits involved in the formula
             // Row N's unit digit (digit 2)
             digitColorMap.set(`${rowIndex}-2`, colorClass);
             
-            // Row N's hundred digit (digit 0)
+            // Row N's hundred digit (digit 0) - this is the one being checked
             digitColorMap.set(`${rowIndex}-0`, colorClass);
             
             // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
@@ -170,9 +171,9 @@ function createDigitColorMap(numbers, matches, validGroups) {
                 digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
             }
             
-            // Row (N+2)'s hundred digit (digit 0)
+            // Row (N+2)'s TEN digit (digit 1) - CORRECTED!
             if (rowIndex + 2 < numbers.length) {
-                digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
+                digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
             }
         });
     });
@@ -182,7 +183,7 @@ function createDigitColorMap(numbers, matches, validGroups) {
 
 // Create connector bars for visual linking
 function createConnectorBars(numbers, matches, validGroups) {
-    const connectorMap = new Map(); // Key: rowIndex, Value: { startRow, endRow, barClass }
+    const connectorMap = new Map(); // Key: rowIndex, Value: array of connector info
     
     validGroups.forEach((group, groupIndex) => {
         const barClass = logicEnabled ? barClasses[groupIndex % barClasses.length] : '';
@@ -209,8 +210,7 @@ function createConnectorBars(numbers, matches, validGroups) {
 }
 
 // Render results grid
-function renderGrid(numbers, matches, digitColorMap) {
-    const validGroups = identifyGroups(matches).filter(group => group.length >= 2);
+function renderGrid(numbers, matches, digitColorMap, validGroups) {
     const connectorMap = createConnectorBars(numbers, matches, validGroups);
     
     let html = '<div class="results-grid">';
