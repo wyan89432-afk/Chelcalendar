@@ -136,94 +136,159 @@ textarea:focus {
     margin-top: 30px;
 }
 
-.results-table {
-    width: 100%;
-    border-collapse: collapse;
+/* Results Grid Display */
+.results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     margin-top: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: #f9f9f9;
+    border: 2px solid #ddd;
     border-radius: 8px;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.results-table thead {
-    background: #f8f9fa;
-    border-bottom: 2px solid #ddd;
-}
-
-.results-table th {
-    padding: 15px;
-    text-align: center;
-    font-weight: 600;
-    color: #333;
-}
-
-.results-table td {
-    padding: 12px 15px;
-    text-align: center;
+.row-item {
+    display: flex;
+    align-items: center;
     border-bottom: 1px solid #eee;
-    font-size: 1.1em;
-    font-weight: 500;
+    position: relative;
+    background: white;
 }
 
-.results-table tbody tr:last-child td {
+.row-item:last-child {
     border-bottom: none;
 }
 
-.results-table tbody tr:hover {
+.row-number {
+    min-width: 50px;
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 700;
+    color: #c0392b;
+    font-size: 1.1em;
+    border-right: 2px solid #ddd;
     background: #f9f9f9;
 }
 
-.row-number {
-    color: #999;
-    font-size: 0.9em;
+.digits-container {
+    display: flex;
+    flex: 1;
+    position: relative;
+    padding: 10px 15px;
+    gap: 8px;
 }
 
-.number-cell {
-    font-family: 'Courier New', monospace;
-    font-size: 1.2em;
+.digit-box {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 1.3em;
     font-weight: 700;
-    letter-spacing: 2px;
+    background: white;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.digit-box.highlighted {
+    border-width: 3px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Color classes for matching groups */
 .color-red {
     background: #ffcccb;
     color: #8b0000;
+    border-color: #c0392b;
 }
 
 .color-blue {
     background: #add8e6;
     color: #00008b;
+    border-color: #2980b9;
 }
 
 .color-green {
     background: #90ee90;
     color: #006400;
+    border-color: #27ae60;
 }
 
 .color-purple {
     background: #dda0dd;
     color: #4b0082;
+    border-color: #8e44ad;
 }
 
 .color-orange {
     background: #ffd699;
     color: #ff8c00;
+    border-color: #e67e22;
 }
 
 .color-cyan {
     background: #b0e0e6;
     color: #008b8b;
+    border-color: #16a085;
 }
 
 .color-pink {
     background: #ffb6c1;
     color: #c71585;
+    border-color: #e91e63;
 }
 
 .color-yellow {
     background: #ffffe0;
     color: #b8860b;
+    border-color: #f39c12;
+}
+
+/* Vertical connector bars */
+.connector-bar {
+    position: absolute;
+    right: 5px;
+    width: 8px;
+    border-radius: 4px;
+    z-index: 0;
+}
+
+.connector-bar.bar-red {
+    background: #c0392b;
+}
+
+.connector-bar.bar-blue {
+    background: #2980b9;
+}
+
+.connector-bar.bar-green {
+    background: #27ae60;
+}
+
+.connector-bar.bar-purple {
+    background: #8e44ad;
+}
+
+.connector-bar.bar-orange {
+    background: #e67e22;
+}
+
+.connector-bar.bar-cyan {
+    background: #16a085;
+}
+
+.connector-bar.bar-pink {
+    background: #e91e63;
+}
+
+.connector-bar.bar-yellow {
+    background: #f39c12;
 }
 
 .status-message {
@@ -280,15 +345,15 @@ footer {
         justify-content: center;
     }
 
-    .results-table th,
-    .results-table td {
-        padding: 10px 8px;
-        font-size: 0.95em;
+    .digit-box {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1em;
     }
 
-    .number-cell {
-        font-size: 1em;
-        letter-spacing: 1px;
+    .row-number {
+        min-width: 45px;
+        font-size: 0.95em;
     }
 
     main {
@@ -310,18 +375,25 @@ footer {
         padding: 10px;
     }
 
-    .results-table th,
-    .results-table td {
-        padding: 8px 5px;
-        font-size: 0.85em;
+    .digit-box {
+        width: 35px;
+        height: 35px;
+        font-size: 0.95em;
+        border: 1px solid #ddd;
     }
 
-    .number-cell {
-        font-size: 0.9em;
-        letter-spacing: 0.5px;
+    .digit-box.highlighted {
+        border-width: 2px;
     }
 
     .row-number {
-        font-size: 0.8em;
+        min-width: 40px;
+        font-size: 0.85em;
+        padding: 10px 5px;
+    }
+
+    .digits-container {
+        padding: 8px 10px;
+        gap: 5px;
     }
 }

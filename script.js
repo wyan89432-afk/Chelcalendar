@@ -1,6 +1,7 @@
 // State management
 let logicEnabled = true;
 const colorClasses = ['color-red', 'color-blue', 'color-green', 'color-purple', 'color-orange', 'color-cyan', 'color-pink', 'color-yellow'];
+const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orange', 'bar-cyan', 'bar-pink', 'bar-yellow'];
 
 // DOM Elements
 const numberInput = document.getElementById('numberInput');
@@ -68,17 +69,11 @@ function analyze() {
     // Filter groups (only keep groups with 2+ consecutive matches)
     const validGroups = groups.filter(group => group.length >= 2);
     
-    // Create color mapping
-    const colorMap = new Map();
-    validGroups.forEach((group, index) => {
-        const colorClass = colorClasses[index % colorClasses.length];
-        group.forEach(rowIndex => {
-            colorMap.set(rowIndex, colorClass);
-        });
-    });
+    // Create color mapping for digit highlighting
+    const digitColorMap = createDigitColorMap(validNumbers, matches, validGroups);
     
-    // Render table
-    renderTable(validNumbers, matches, colorMap);
+    // Render grid
+    renderGrid(validNumbers, matches, digitColorMap);
     
     // Show summary
     const summaryText = logicEnabled 
@@ -152,23 +147,106 @@ function identifyGroups(matches) {
     return groups;
 }
 
-// Render results table
-function renderTable(numbers, matches, colorMap) {
-    let html = '<table class="results-table"><thead><tr><th>Row</th><th>Number</th><th>Match</th></tr></thead><tbody>';
+// Create a map of which digits should be colored
+function createDigitColorMap(numbers, matches, validGroups) {
+    const digitColorMap = new Map(); // Key: "rowIndex-digitIndex", Value: colorClass
+    
+    validGroups.forEach((group, groupIndex) => {
+        const colorClass = logicEnabled ? colorClasses[groupIndex % colorClasses.length] : '';
+        
+        group.forEach(rowIndex => {
+            if (!logicEnabled) return;
+            
+            // For each matching row, color the specific digits involved
+            // Row N's unit digit (digit 2)
+            digitColorMap.set(`${rowIndex}-2`, colorClass);
+            
+            // Row N's hundred digit (digit 0)
+            digitColorMap.set(`${rowIndex}-0`, colorClass);
+            
+            // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
+            if (rowIndex + 1 < numbers.length) {
+                digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
+                digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
+            }
+            
+            // Row (N+2)'s hundred digit (digit 0)
+            if (rowIndex + 2 < numbers.length) {
+                digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
+            }
+        });
+    });
+    
+    return digitColorMap;
+}
+
+// Create connector bars for visual linking
+function createConnectorBars(numbers, matches, validGroups) {
+    const connectorMap = new Map(); // Key: rowIndex, Value: { startRow, endRow, barClass }
+    
+    validGroups.forEach((group, groupIndex) => {
+        const barClass = logicEnabled ? barClasses[groupIndex % barClasses.length] : '';
+        
+        group.forEach(rowIndex => {
+            if (!logicEnabled) return;
+            
+            // Calculate the span of the connector bar
+            // It should connect from Row N to Row (N+2)
+            const startRow = rowIndex;
+            const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+            
+            // Store connector info for each row in the range
+            for (let r = startRow; r <= endRow; r++) {
+                if (!connectorMap.has(r)) {
+                    connectorMap.set(r, []);
+                }
+                connectorMap.get(r).push({ startRow, endRow, barClass, groupIndex });
+            }
+        });
+    });
+    
+    return connectorMap;
+}
+
+// Render results grid
+function renderGrid(numbers, matches, digitColorMap) {
+    const validGroups = identifyGroups(matches).filter(group => group.length >= 2);
+    const connectorMap = createConnectorBars(numbers, matches, validGroups);
+    
+    let html = '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
-        const isMatch = matches[i];
-        const colorClass = logicEnabled && colorMap.has(i) ? colorMap.get(i) : '';
-        const matchStatus = isMatch ? '✓ ကိုက်ညီ' : '✗';
+        const num = numbers[i];
+        const connectors = connectorMap.get(i) || [];
         
-        html += `<tr ${colorClass ? `class="${colorClass}"` : ''}>
-            <td class="row-number">${i + 1}</td>
-            <td class="number-cell">${numbers[i]}</td>
-            <td>${logicEnabled ? matchStatus : '—'}</td>
-        </tr>`;
+        html += `<div class="row-item">
+            <div class="row-number">${i + 1}</div>
+            <div class="digits-container">`;
+        
+        // Add digits
+        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
+            const digit = num[digitIndex];
+            const colorKey = `${i}-${digitIndex}`;
+            const colorClass = digitColorMap.get(colorKey) || '';
+            const highlightClass = colorClass ? 'highlighted' : '';
+            
+            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
+        }
+        
+        // Add connector bars
+        connectors.forEach((connector, idx) => {
+            const { startRow, endRow, barClass } = connector;
+            const rowsSpanned = endRow - startRow + 1;
+            const barHeight = rowsSpanned * 65; // Approximate height per row
+            const barTop = (startRow - i) * 65;
+            
+            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
+        });
+        
+        html += `</div></div>`;
     }
     
-    html += '</tbody></table>';
+    html += '</div>';
     resultsContainer.innerHTML = html;
 }
 
