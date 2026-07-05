@@ -1,27 +1,64 @@
-// State management
-let logicEnabled = true;
+// Modular Logic System
+// Each logic can be toggled on/off independently
+const logics = {
+    m1: {
+        id: 'm1',
+        name: 'M1',
+        label: 'အင်္ဂလိပ်ကုဒ်',
+        enabled: true,
+        calculate: calculateM1Matches,
+        identifyGroups: identifyConsecutiveGroups
+    }
+    // Future logics (M2, M3, etc.) can be added here
+};
+
+// Track which logics are active
+const activeLogics = new Set(['m1']);
+
 const colorClasses = ['color-red', 'color-blue', 'color-green', 'color-purple', 'color-orange', 'color-cyan', 'color-pink', 'color-yellow', 'color-brown', 'color-teal'];
 const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orange', 'bar-cyan', 'bar-pink', 'bar-yellow', 'bar-brown', 'bar-teal'];
 
 // DOM Elements
 const numberInput = document.getElementById('numberInput');
 const analyzeBtn = document.getElementById('analyzeBtn');
-const toggleLogic = document.getElementById('toggleLogic');
+const logicTogglesContainer = document.getElementById('logicToggles');
 const resultsContainer = document.getElementById('resultsContainer');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
-toggleLogic.addEventListener('click', toggleLogicState);
 
-// Toggle logic on/off
-function toggleLogicState() {
-    logicEnabled = !logicEnabled;
-    toggleLogic.classList.toggle('disabled');
+// Initialize logic toggles on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeLogicToggles();
+});
+
+// Initialize the logic toggle buttons
+function initializeLogicToggles() {
+    logicTogglesContainer.innerHTML = '';
     
-    if (logicEnabled) {
-        toggleLogic.textContent = '👁 အင်္ဂလိပ်ကုဒ်';
+    Object.values(logics).forEach(logic => {
+        const btn = document.createElement('button');
+        btn.className = `logic-toggle-btn ${activeLogics.has(logic.id) ? 'active' : 'inactive'}`;
+        btn.dataset.logicId = logic.id;
+        btn.innerHTML = `<span class="eye-icon">👁</span><span class="logic-name">${logic.name}</span>`;
+        btn.title = logic.label;
+        
+        btn.addEventListener('click', () => toggleLogic(logic.id, btn));
+        
+        logicTogglesContainer.appendChild(btn);
+    });
+}
+
+// Toggle a logic on/off
+function toggleLogic(logicId, btn) {
+    if (activeLogics.has(logicId)) {
+        activeLogics.delete(logicId);
+        btn.classList.remove('active');
+        btn.classList.add('inactive');
     } else {
-        toggleLogic.textContent = '🚫 အင်္ဂလိပ်ကုဒ်';
+        activeLogics.add(logicId);
+        btn.classList.remove('inactive');
+        btn.classList.add('active');
     }
     
     // Re-analyze if there are already results
@@ -60,32 +97,46 @@ function analyze() {
         return;
     }
     
-    // Calculate matches using skip-row pattern (Row 2, 4, 6, 8...)
-    const checkResults = calculateCheckMatches(validNumbers);
+    // Collect results from all active logics
+    const allLogicResults = {};
+    const digitColorMap = new Map();
     
-    // Identify consecutive groups of matches
-    const groups = identifyConsecutiveGroups(checkResults);
+    activeLogics.forEach(logicId => {
+        const logic = logics[logicId];
+        const checkResults = logic.calculate(validNumbers);
+        const groups = logic.identifyGroups(checkResults);
+        const validGroups = groups.filter(group => group.length >= 2);
+        
+        allLogicResults[logicId] = {
+            checkResults,
+            groups,
+            validGroups
+        };
+        
+        // Create color mapping for this logic
+        createDigitColorMapForLogic(validNumbers, checkResults, validGroups, digitColorMap, logicId);
+    });
     
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
-    
-    // Create color mapping for digit highlighting - EACH CHECK gets its own color
-    const digitColorMap = createDigitColorMap(validNumbers, checkResults, validGroups);
-    
-    // Render grid
-    renderGrid(validNumbers, checkResults, digitColorMap, validGroups);
+    // Render grid with all active logics
+    renderGrid(validNumbers, allLogicResults, digitColorMap);
     
     // Show summary
-    const summaryText = logicEnabled 
-        ? `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`
-        : 'အင်္ဂလိပ်ကုဒ်ပိတ်ထားသည်။ (Logic disabled)';
+    const summaries = [];
+    activeLogics.forEach(logicId => {
+        const logic = logics[logicId];
+        const validGroups = allLogicResults[logicId].validGroups;
+        summaries.push(`${logic.name}: ${validGroups.length} group(s)`);
+    });
+    
+    const summaryText = summaries.length > 0 
+        ? summaries.join(' | ')
+        : 'No active logics';
     
     resultsContainer.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
 
-// Calculate matches using skip-row pattern: Row 2, 4, 6, 8... (indices 1, 3, 5, 7...)
-// Returns array where index i represents check i (0-based), with value true/false
-function calculateCheckMatches(numbers) {
+// M1 Logic: Check every 2 rows (Row 2, 4, 6, 8...)
+function calculateM1Matches(numbers) {
     const checkResults = [];
     
     // Start from Row 2 (index 1) and check every 2 rows
@@ -94,7 +145,7 @@ function calculateCheckMatches(numbers) {
         const nextNum = numbers[i + 1];
         const nextNextNum = numbers[i + 2];
         
-        // Extract digits according to CORRECTED formula
+        // Extract digits according to formula
         const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit
         const nextTenDigit = parseInt(nextNum[1]); // Row (N+1): ten digit
         const nextUnitDigit = parseInt(nextNum[2]); // Row (N+1): unit digit
@@ -144,11 +195,8 @@ function identifyConsecutiveGroups(checkResults) {
     return groups;
 }
 
-// Create a map of which digits should be colored
-// EACH CHECK gets its own unique color based on its index
-function createDigitColorMap(numbers, checkResults, validGroups) {
-    const digitColorMap = new Map(); // Key: "rowIndex-digitIndex", Value: colorClass
-    
+// Create color mapping for a specific logic
+function createDigitColorMapForLogic(numbers, checkResults, validGroups, digitColorMap, logicId) {
     // Flatten all valid group check indices and assign colors based on check index
     const allValidCheckIndices = new Set();
     validGroups.forEach(group => {
@@ -159,8 +207,6 @@ function createDigitColorMap(numbers, checkResults, validGroups) {
     
     // For each valid check, assign it a unique color based on its index
     allValidCheckIndices.forEach(checkIndex => {
-        if (!logicEnabled) return;
-        
         const check = checkResults[checkIndex];
         const rowIndex = check.rowIndex;
         
@@ -171,7 +217,7 @@ function createDigitColorMap(numbers, checkResults, validGroups) {
         // Row N's unit digit (digit 2)
         digitColorMap.set(`${rowIndex}-2`, colorClass);
         
-        // Row N's hundred digit (digit 0) - this is the one being checked
+        // Row N's hundred digit (digit 0)
         digitColorMap.set(`${rowIndex}-0`, colorClass);
         
         // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
@@ -185,52 +231,51 @@ function createDigitColorMap(numbers, checkResults, validGroups) {
             digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
         }
     });
-    
-    return digitColorMap;
 }
 
 // Create connector bars for visual linking
-function createConnectorBars(numbers, checkResults, validGroups) {
+function createConnectorBars(numbers, allLogicResults) {
     const connectorMap = new Map(); // Key: rowIndex, Value: array of connector info
     
-    // Flatten all valid group check indices
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
+    activeLogics.forEach(logicId => {
+        const { checkResults, validGroups } = allLogicResults[logicId];
+        
+        // Flatten all valid group check indices
+        const allValidCheckIndices = new Set();
+        validGroups.forEach(group => {
+            group.forEach(checkIndex => {
+                allValidCheckIndices.add(checkIndex);
+            });
         });
-    });
-    
-    // For each valid check, create its connector bar
-    allValidCheckIndices.forEach(checkIndex => {
-        if (!logicEnabled) return;
         
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        // Each check gets its own bar color based on checkIndex
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        // Calculate the span of the connector bar
-        // It should connect from Row N to Row (N+2)
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-        
-        // Store connector info for each row in the range
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
+        // For each valid check, create its connector bar
+        allValidCheckIndices.forEach(checkIndex => {
+            const check = checkResults[checkIndex];
+            const rowIndex = check.rowIndex;
+            
+            // Each check gets its own bar color based on checkIndex
+            const barClass = barClasses[checkIndex % barClasses.length];
+            
+            // Calculate the span of the connector bar
+            const startRow = rowIndex;
+            const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+            
+            // Store connector info for each row in the range
+            for (let r = startRow; r <= endRow; r++) {
+                if (!connectorMap.has(r)) {
+                    connectorMap.set(r, []);
+                }
+                connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
             }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
-        }
+        });
     });
     
     return connectorMap;
 }
 
 // Render results grid
-function renderGrid(numbers, checkResults, digitColorMap, validGroups) {
-    const connectorMap = createConnectorBars(numbers, checkResults, validGroups);
+function renderGrid(numbers, allLogicResults, digitColorMap) {
+    const connectorMap = createConnectorBars(numbers, allLogicResults);
     
     let html = '<div class="results-grid">';
     
@@ -268,9 +313,3 @@ function renderGrid(numbers, checkResults, digitColorMap, validGroups) {
     html += '</div>';
     resultsContainer.innerHTML = html;
 }
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    // Set initial state
-    toggleLogic.textContent = '👁 အင်္ဂလိပ်ကုဒ်';
-});

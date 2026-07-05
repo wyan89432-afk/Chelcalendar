@@ -17,9 +17,6 @@
             <section class="input-section">
                 <div class="input-header">
                     <label for="numberInput">ဂဏန်းများထည့်သွင်းပါ (Enter 3-digit numbers):</label>
-                    <button id="toggleLogic" class="toggle-btn" title="Toggle Chel Logic">
-                        👁 အင်္ဂလိပ်ကုဒ်
-                    </button>
                 </div>
                 <textarea 
                     id="numberInput" 
@@ -27,6 +24,14 @@
                     rows="10"
                 ></textarea>
                 <button id="analyzeBtn" class="analyze-btn">ခွဲခြမ်းစိတ်ဖြာ (Analyze)</button>
+            </section>
+
+            <!-- Logic Toggle Toolbar -->
+            <section class="logic-toolbar">
+                <div class="toolbar-label">ကုဒ်များ (Logics):</div>
+                <div class="logic-toggles" id="logicToggles">
+                    <!-- Logic toggle buttons will be generated here -->
+                </div>
             </section>
 
             <section class="results-section">
