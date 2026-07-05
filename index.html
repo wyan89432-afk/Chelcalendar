@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ချယ်လကယ်လန်ဒါ - Chel Calendar</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ချယ်လကယ်လန်ဒါ</h1>
+            <p class="subtitle">Chel Calendar - 3-Digit Number Analyzer</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="input-header">
+                    <label for="numberInput">ဂဏန်းများထည့်သွင်းပါ (Enter 3-digit numbers):</label>
+                    <button id="toggleLogic" class="toggle-btn" title="Toggle Chel Logic">
+                        👁 အင်္ဂလိပ်ကုဒ်
+                    </button>
+                </div>
+                <textarea 
+                    id="numberInput" 
+                    placeholder="Paste 3-digit numbers here (one per line)&#10;Example:&#10;898&#10;145&#10;252"
+                    rows="10"
+                ></textarea>
+                <button id="analyzeBtn" class="analyze-btn">ခွဲခြမ်းစိတ်ဖြာ (Analyze)</button>
+            </section>
+
+            <section class="results-section">
+                <div id="resultsContainer"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>ချယ်လကယ်လန်ဒါ - Chel Calendar Number Analysis Tool</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
