@@ -1,7 +1,7 @@
 // State management
 let logicEnabled = true;
-const colorClasses = ['color-red', 'color-blue', 'color-green', 'color-purple', 'color-orange', 'color-cyan', 'color-pink', 'color-yellow'];
-const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orange', 'bar-cyan', 'bar-pink', 'bar-yellow'];
+const colorClasses = ['color-red', 'color-blue', 'color-green', 'color-purple', 'color-orange', 'color-cyan', 'color-pink', 'color-yellow', 'color-brown', 'color-teal'];
+const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orange', 'bar-cyan', 'bar-pink', 'bar-yellow', 'bar-brown', 'bar-teal'];
 
 // DOM Elements
 const numberInput = document.getElementById('numberInput');
@@ -69,7 +69,7 @@ function analyze() {
     // Filter groups (only keep groups with 2+ consecutive matches)
     const validGroups = groups.filter(group => group.length >= 2);
     
-    // Create color mapping for digit highlighting
+    // Create color mapping for digit highlighting - EACH CHECK gets its own color
     const digitColorMap = createDigitColorMap(validNumbers, checkResults, validGroups);
     
     // Render grid
@@ -145,36 +145,45 @@ function identifyConsecutiveGroups(checkResults) {
 }
 
 // Create a map of which digits should be colored
+// EACH CHECK gets its own unique color based on its index
 function createDigitColorMap(numbers, checkResults, validGroups) {
     const digitColorMap = new Map(); // Key: "rowIndex-digitIndex", Value: colorClass
     
-    validGroups.forEach((group, groupIndex) => {
-        const colorClass = logicEnabled ? colorClasses[groupIndex % colorClasses.length] : '';
-        
+    // Flatten all valid group check indices and assign colors based on check index
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
         group.forEach(checkIndex => {
-            if (!logicEnabled) return;
-            
-            const check = checkResults[checkIndex];
-            const rowIndex = check.rowIndex;
-            
-            // For each matching check, color the specific digits involved in the formula
-            // Row N's unit digit (digit 2)
-            digitColorMap.set(`${rowIndex}-2`, colorClass);
-            
-            // Row N's hundred digit (digit 0) - this is the one being checked
-            digitColorMap.set(`${rowIndex}-0`, colorClass);
-            
-            // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
-            if (rowIndex + 1 < numbers.length) {
-                digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
-                digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
-            }
-            
-            // Row (N+2)'s TEN digit (digit 1)
-            if (rowIndex + 2 < numbers.length) {
-                digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-            }
+            allValidCheckIndices.add(checkIndex);
         });
+    });
+    
+    // For each valid check, assign it a unique color based on its index
+    allValidCheckIndices.forEach(checkIndex => {
+        if (!logicEnabled) return;
+        
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        // Each check gets its own color based on checkIndex
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        // For each matching check, color the specific digits involved in the formula
+        // Row N's unit digit (digit 2)
+        digitColorMap.set(`${rowIndex}-2`, colorClass);
+        
+        // Row N's hundred digit (digit 0) - this is the one being checked
+        digitColorMap.set(`${rowIndex}-0`, colorClass);
+        
+        // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
+            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
+        }
+        
+        // Row (N+2)'s TEN digit (digit 1)
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
+        }
     });
     
     return digitColorMap;
@@ -184,28 +193,36 @@ function createDigitColorMap(numbers, checkResults, validGroups) {
 function createConnectorBars(numbers, checkResults, validGroups) {
     const connectorMap = new Map(); // Key: rowIndex, Value: array of connector info
     
-    validGroups.forEach((group, groupIndex) => {
-        const barClass = logicEnabled ? barClasses[groupIndex % barClasses.length] : '';
-        
+    // Flatten all valid group check indices
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
         group.forEach(checkIndex => {
-            if (!logicEnabled) return;
-            
-            const check = checkResults[checkIndex];
-            const rowIndex = check.rowIndex;
-            
-            // Calculate the span of the connector bar
-            // It should connect from Row N to Row (N+2)
-            const startRow = rowIndex;
-            const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-            
-            // Store connector info for each row in the range
-            for (let r = startRow; r <= endRow; r++) {
-                if (!connectorMap.has(r)) {
-                    connectorMap.set(r, []);
-                }
-                connectorMap.get(r).push({ startRow, endRow, barClass, groupIndex });
-            }
+            allValidCheckIndices.add(checkIndex);
         });
+    });
+    
+    // For each valid check, create its connector bar
+    allValidCheckIndices.forEach(checkIndex => {
+        if (!logicEnabled) return;
+        
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        // Each check gets its own bar color based on checkIndex
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        // Calculate the span of the connector bar
+        // It should connect from Row N to Row (N+2)
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+        
+        // Store connector info for each row in the range
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
     });
     
     return connectorMap;

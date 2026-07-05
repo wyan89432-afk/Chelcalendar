@@ -201,56 +201,79 @@ textarea:focus {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Color classes for matching groups */
+/* VIBRANT COLOR CLASSES - Each check gets its own unique color */
+
+/* Check 1 - RED */
 .color-red {
-    background: #ffcccb;
-    color: #8b0000;
-    border-color: #c0392b;
+    background: #ff4444;
+    color: white;
+    border-color: #cc0000;
 }
 
+/* Check 2 - BLUE */
 .color-blue {
-    background: #add8e6;
-    color: #00008b;
-    border-color: #2980b9;
+    background: #0066ff;
+    color: white;
+    border-color: #0033cc;
 }
 
+/* Check 3 - GREEN */
 .color-green {
-    background: #90ee90;
-    color: #006400;
-    border-color: #27ae60;
+    background: #00cc44;
+    color: white;
+    border-color: #009933;
 }
 
+/* Check 4 - PURPLE/MAGENTA */
 .color-purple {
-    background: #dda0dd;
-    color: #4b0082;
-    border-color: #8e44ad;
+    background: #dd00dd;
+    color: white;
+    border-color: #aa00aa;
 }
 
+/* Check 5 - ORANGE */
 .color-orange {
-    background: #ffd699;
-    color: #ff8c00;
-    border-color: #e67e22;
+    background: #ff9900;
+    color: white;
+    border-color: #cc6600;
 }
 
+/* Check 6 - CYAN/TEAL */
 .color-cyan {
-    background: #b0e0e6;
-    color: #008b8b;
-    border-color: #16a085;
+    background: #00dddd;
+    color: #003333;
+    border-color: #009999;
 }
 
+/* Check 7 - PINK */
 .color-pink {
-    background: #ffb6c1;
-    color: #c71585;
-    border-color: #e91e63;
+    background: #ff1493;
+    color: white;
+    border-color: #cc0077;
 }
 
+/* Check 8 - YELLOW */
 .color-yellow {
-    background: #ffffe0;
-    color: #b8860b;
-    border-color: #f39c12;
+    background: #ffdd00;
+    color: #333;
+    border-color: #ccaa00;
 }
 
-/* Vertical connector bars */
+/* Check 9 - BROWN */
+.color-brown {
+    background: #8b4513;
+    color: white;
+    border-color: #654321;
+}
+
+/* Check 10 - TEAL */
+.color-teal {
+    background: #008080;
+    color: white;
+    border-color: #004d4d;
+}
+
+/* Vertical connector bars - matching colors */
 .connector-bar {
     position: absolute;
     right: 5px;
@@ -260,35 +283,43 @@ textarea:focus {
 }
 
 .connector-bar.bar-red {
-    background: #c0392b;
+    background: #cc0000;
 }
 
 .connector-bar.bar-blue {
-    background: #2980b9;
+    background: #0033cc;
 }
 
 .connector-bar.bar-green {
-    background: #27ae60;
+    background: #009933;
 }
 
 .connector-bar.bar-purple {
-    background: #8e44ad;
+    background: #aa00aa;
 }
 
 .connector-bar.bar-orange {
-    background: #e67e22;
+    background: #cc6600;
 }
 
 .connector-bar.bar-cyan {
-    background: #16a085;
+    background: #009999;
 }
 
 .connector-bar.bar-pink {
-    background: #e91e63;
+    background: #cc0077;
 }
 
 .connector-bar.bar-yellow {
-    background: #f39c12;
+    background: #ccaa00;
+}
+
+.connector-bar.bar-brown {
+    background: #654321;
+}
+
+.connector-bar.bar-teal {
+    background: #004d4d;
 }
 
 .status-message {
