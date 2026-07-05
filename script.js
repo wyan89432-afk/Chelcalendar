@@ -60,20 +60,20 @@ function analyze() {
         return;
     }
     
-    // Calculate matches
-    const matches = calculateMatches(validNumbers);
+    // Calculate matches using skip-row pattern (Row 2, 4, 6, 8...)
+    const checkResults = calculateCheckMatches(validNumbers);
     
-    // Identify groups
-    const groups = identifyGroups(matches);
+    // Identify consecutive groups of matches
+    const groups = identifyConsecutiveGroups(checkResults);
     
     // Filter groups (only keep groups with 2+ consecutive matches)
     const validGroups = groups.filter(group => group.length >= 2);
     
     // Create color mapping for digit highlighting
-    const digitColorMap = createDigitColorMap(validNumbers, matches, validGroups);
+    const digitColorMap = createDigitColorMap(validNumbers, checkResults, validGroups);
     
     // Render grid
-    renderGrid(validNumbers, matches, digitColorMap, validGroups);
+    renderGrid(validNumbers, checkResults, digitColorMap, validGroups);
     
     // Show summary
     const summaryText = logicEnabled 
@@ -83,27 +83,22 @@ function analyze() {
     resultsContainer.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
 
-// Calculate matches for each row using CORRECTED formula
-// For Row N: unit digit + Row(N+1) ten & unit digits + Row(N+2) TEN digit
-function calculateMatches(numbers) {
-    const matches = [];
+// Calculate matches using skip-row pattern: Row 2, 4, 6, 8... (indices 1, 3, 5, 7...)
+// Returns array where index i represents check i (0-based), with value true/false
+function calculateCheckMatches(numbers) {
+    const checkResults = [];
     
-    for (let i = 0; i < numbers.length; i++) {
-        if (i + 2 >= numbers.length) {
-            // Not enough rows ahead for calculation
-            matches.push(false);
-            continue;
-        }
-        
+    // Start from Row 2 (index 1) and check every 2 rows
+    for (let i = 1; i + 2 < numbers.length; i += 2) {
         const currentNum = numbers[i];
         const nextNum = numbers[i + 1];
         const nextNextNum = numbers[i + 2];
         
         // Extract digits according to CORRECTED formula
-        const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit (position 2)
-        const nextTenDigit = parseInt(nextNum[1]); // Row (N+1): ten digit (position 1)
-        const nextUnitDigit = parseInt(nextNum[2]); // Row (N+1): unit digit (position 2)
-        const nextNextTenDigit = parseInt(nextNextNum[1]); // Row (N+2): TEN digit (position 1) - CORRECTED!
+        const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit
+        const nextTenDigit = parseInt(nextNum[1]); // Row (N+1): ten digit
+        const nextUnitDigit = parseInt(nextNum[2]); // Row (N+1): unit digit
+        const nextNextTenDigit = parseInt(nextNextNum[1]); // Row (N+2): TEN digit
         
         // Sum all individual digits
         const sum = currentUnitDigit + nextTenDigit + nextUnitDigit + nextNextTenDigit;
@@ -114,24 +109,25 @@ function calculateMatches(numbers) {
         
         // Check if match
         const isMatch = sumUnitDigit === currentHundredDigit;
-        matches.push(isMatch);
+        checkResults.push({
+            rowIndex: i,
+            isMatch: isMatch,
+            sum: sum,
+            sumUnitDigit: sumUnitDigit,
+            expectedDigit: currentHundredDigit
+        });
     }
     
-    // Remaining rows that don't have enough data ahead
-    while (matches.length < numbers.length) {
-        matches.push(false);
-    }
-    
-    return matches;
+    return checkResults;
 }
 
-// Identify consecutive groups of matches
-function identifyGroups(matches) {
+// Identify consecutive groups of matching checks
+function identifyConsecutiveGroups(checkResults) {
     const groups = [];
     let currentGroup = [];
     
-    for (let i = 0; i < matches.length; i++) {
-        if (matches[i]) {
+    for (let i = 0; i < checkResults.length; i++) {
+        if (checkResults[i].isMatch) {
             currentGroup.push(i);
         } else {
             if (currentGroup.length > 0) {
@@ -149,16 +145,19 @@ function identifyGroups(matches) {
 }
 
 // Create a map of which digits should be colored
-function createDigitColorMap(numbers, matches, validGroups) {
+function createDigitColorMap(numbers, checkResults, validGroups) {
     const digitColorMap = new Map(); // Key: "rowIndex-digitIndex", Value: colorClass
     
     validGroups.forEach((group, groupIndex) => {
         const colorClass = logicEnabled ? colorClasses[groupIndex % colorClasses.length] : '';
         
-        group.forEach(rowIndex => {
+        group.forEach(checkIndex => {
             if (!logicEnabled) return;
             
-            // For each matching row, color the specific digits involved in the formula
+            const check = checkResults[checkIndex];
+            const rowIndex = check.rowIndex;
+            
+            // For each matching check, color the specific digits involved in the formula
             // Row N's unit digit (digit 2)
             digitColorMap.set(`${rowIndex}-2`, colorClass);
             
@@ -171,7 +170,7 @@ function createDigitColorMap(numbers, matches, validGroups) {
                 digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
             }
             
-            // Row (N+2)'s TEN digit (digit 1) - CORRECTED!
+            // Row (N+2)'s TEN digit (digit 1)
             if (rowIndex + 2 < numbers.length) {
                 digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
             }
@@ -182,14 +181,17 @@ function createDigitColorMap(numbers, matches, validGroups) {
 }
 
 // Create connector bars for visual linking
-function createConnectorBars(numbers, matches, validGroups) {
+function createConnectorBars(numbers, checkResults, validGroups) {
     const connectorMap = new Map(); // Key: rowIndex, Value: array of connector info
     
     validGroups.forEach((group, groupIndex) => {
         const barClass = logicEnabled ? barClasses[groupIndex % barClasses.length] : '';
         
-        group.forEach(rowIndex => {
+        group.forEach(checkIndex => {
             if (!logicEnabled) return;
+            
+            const check = checkResults[checkIndex];
+            const rowIndex = check.rowIndex;
             
             // Calculate the span of the connector bar
             // It should connect from Row N to Row (N+2)
@@ -210,8 +212,8 @@ function createConnectorBars(numbers, matches, validGroups) {
 }
 
 // Render results grid
-function renderGrid(numbers, matches, digitColorMap, validGroups) {
-    const connectorMap = createConnectorBars(numbers, matches, validGroups);
+function renderGrid(numbers, checkResults, digitColorMap, validGroups) {
+    const connectorMap = createConnectorBars(numbers, checkResults, validGroups);
     
     let html = '<div class="results-grid">';
     
