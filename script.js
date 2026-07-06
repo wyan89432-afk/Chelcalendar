@@ -1,19 +1,5 @@
-// Modular Logic System
-// Each logic can be toggled on/off independently
-const logics = {
-    m1: {
-        id: 'm1',
-        name: 'M1',
-        label: 'အင်္ဂလိပ်ကုဒ်',
-        enabled: true,
-        calculate: calculateM1Matches,
-        identifyGroups: identifyConsecutiveGroups
-    }
-    // Future logics (M2, M3, etc.) can be added here
-};
-
-// Track which logics are active
-const activeLogics = new Set(['m1']);
+// State management
+let currentNumbers = null;
 
 const colorClasses = ['color-red', 'color-blue', 'color-green', 'color-purple', 'color-orange', 'color-cyan', 'color-pink', 'color-yellow', 'color-brown', 'color-teal'];
 const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orange', 'bar-cyan', 'bar-pink', 'bar-yellow', 'bar-brown', 'bar-teal'];
@@ -21,58 +7,19 @@ const barClasses = ['bar-red', 'bar-blue', 'bar-green', 'bar-purple', 'bar-orang
 // DOM Elements
 const numberInput = document.getElementById('numberInput');
 const analyzeBtn = document.getElementById('analyzeBtn');
-const logicTogglesContainer = document.getElementById('logicToggles');
-const resultsContainer = document.getElementById('resultsContainer');
+const m1Container = document.getElementById('m1Container');
+const m2Container = document.getElementById('m2Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
-
-// Initialize logic toggles on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeLogicToggles();
-});
-
-// Initialize the logic toggle buttons
-function initializeLogicToggles() {
-    logicTogglesContainer.innerHTML = '';
-    
-    Object.values(logics).forEach(logic => {
-        const btn = document.createElement('button');
-        btn.className = `logic-toggle-btn ${activeLogics.has(logic.id) ? 'active' : 'inactive'}`;
-        btn.dataset.logicId = logic.id;
-        btn.innerHTML = `<span class="eye-icon">👁</span><span class="logic-name">${logic.name}</span>`;
-        btn.title = logic.label;
-        
-        btn.addEventListener('click', () => toggleLogic(logic.id, btn));
-        
-        logicTogglesContainer.appendChild(btn);
-    });
-}
-
-// Toggle a logic on/off
-function toggleLogic(logicId, btn) {
-    if (activeLogics.has(logicId)) {
-        activeLogics.delete(logicId);
-        btn.classList.remove('active');
-        btn.classList.add('inactive');
-    } else {
-        activeLogics.add(logicId);
-        btn.classList.remove('inactive');
-        btn.classList.add('active');
-    }
-    
-    // Re-analyze if there are already results
-    if (numberInput.value.trim()) {
-        analyze();
-    }
-}
 
 // Main analysis function
 function analyze() {
     const input = numberInput.value.trim();
     
     if (!input) {
-        resultsContainer.innerHTML = '<div class="status-message status-warning">အကျေးဇူးပြု၍ ဂဏန်းများထည့်သွင်းပါ။ (Please enter numbers)</div>';
+        m1Container.innerHTML = '<div class="status-message status-warning">အကျေးဇူးပြု၍ ဂဏန်းများထည့်သွင်းပါ။ (Please enter numbers)</div>';
+        m2Container.innerHTML = '';
         return;
     }
     
@@ -84,58 +31,51 @@ function analyze() {
     // Validate numbers
     const validNumbers = [];
     for (let num of numbers) {
-        if (/^\d{3}$/.test(num)) {
-            validNumbers.push(num);
+        if (/^\d{1,3}$/.test(num)) {
+            validNumbers.push(num.padStart(3, '0'));
         } else if (num.length > 0) {
-            resultsContainer.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${num}" သည် 3-ဂဏန်းမဟုတ်ပါ။ (Invalid: "${num}" is not a 3-digit number)</div>`;
+            m1Container.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${num}" သည် ဂဏန်းမဟုတ်ပါ။ (Invalid: "${num}" is not a number)</div>`;
+            m2Container.innerHTML = '';
             return;
         }
     }
     
     if (validNumbers.length < 2) {
-        resultsContainer.innerHTML = '<div class="status-message status-warning">အနည်းဆုံး 2 ခုသည့် ဂဏန်းများ လိုအပ်ပါသည်။ (At least 2 numbers are required)</div>';
+        m1Container.innerHTML = '<div class="status-message status-warning">အနည်းဆုံး 2 ခုသည့် ဂဏန်းများ လိုအပ်ပါသည်။ (At least 2 numbers are required)</div>';
+        m2Container.innerHTML = '';
         return;
     }
     
-    // Collect results from all active logics
-    const allLogicResults = {};
-    const digitColorMap = new Map();
+    currentNumbers = validNumbers;
     
-    activeLogics.forEach(logicId => {
-        const logic = logics[logicId];
-        const checkResults = logic.calculate(validNumbers);
-        const groups = logic.identifyGroups(checkResults);
-        const validGroups = groups.filter(group => group.length >= 2);
-        
-        allLogicResults[logicId] = {
-            checkResults,
-            groups,
-            validGroups
-        };
-        
-        // Create color mapping for this logic
-        createDigitColorMapForLogic(validNumbers, checkResults, validGroups, digitColorMap, logicId);
-    });
+    // Calculate M1
+    analyzeM1(validNumbers);
     
-    // Render grid with all active logics
-    renderGrid(validNumbers, allLogicResults, digitColorMap);
-    
-    // Show summary
-    const summaries = [];
-    activeLogics.forEach(logicId => {
-        const logic = logics[logicId];
-        const validGroups = allLogicResults[logicId].validGroups;
-        summaries.push(`${logic.name}: ${validGroups.length} group(s)`);
-    });
-    
-    const summaryText = summaries.length > 0 
-        ? summaries.join(' | ')
-        : 'No active logics';
-    
-    resultsContainer.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+    // Calculate M2
+    analyzeM2(validNumbers);
 }
 
-// M1 Logic: Check every 2 rows (Row 2, 4, 6, 8...)
+// ========== M1 LOGIC ==========
+function analyzeM1(numbers) {
+    // Calculate matches using skip-row pattern (Row 2, 4, 6, 8...)
+    const checkResults = calculateM1Matches(numbers);
+    
+    // Identify consecutive groups of matches
+    const groups = identifyConsecutiveGroups(checkResults);
+    
+    // Filter groups (only keep groups with 2+ consecutive matches)
+    const validGroups = groups.filter(group => group.length >= 2);
+    
+    // Create color mapping for digit highlighting
+    const digitColorMap = createDigitColorMap(numbers, checkResults, validGroups);
+    
+    // Create connector bars
+    const connectorMap = createConnectorBars(numbers, checkResults, validGroups);
+    
+    // Render grid
+    renderM1Grid(numbers, digitColorMap, connectorMap, validGroups);
+}
+
 function calculateM1Matches(numbers) {
     const checkResults = [];
     
@@ -172,111 +112,7 @@ function calculateM1Matches(numbers) {
     return checkResults;
 }
 
-// Identify consecutive groups of matching checks
-function identifyConsecutiveGroups(checkResults) {
-    const groups = [];
-    let currentGroup = [];
-    
-    for (let i = 0; i < checkResults.length; i++) {
-        if (checkResults[i].isMatch) {
-            currentGroup.push(i);
-        } else {
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-                currentGroup = [];
-            }
-        }
-    }
-    
-    if (currentGroup.length > 0) {
-        groups.push(currentGroup);
-    }
-    
-    return groups;
-}
-
-// Create color mapping for a specific logic
-function createDigitColorMapForLogic(numbers, checkResults, validGroups, digitColorMap, logicId) {
-    // Flatten all valid group check indices and assign colors based on check index
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    // For each valid check, assign it a unique color based on its index
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        // Each check gets its own color based on checkIndex
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        // For each matching check, color the specific digits involved in the formula
-        // Row N's unit digit (digit 2)
-        digitColorMap.set(`${rowIndex}-2`, colorClass);
-        
-        // Row N's hundred digit (digit 0)
-        digitColorMap.set(`${rowIndex}-0`, colorClass);
-        
-        // Row (N+1)'s ten digit (digit 1) and unit digit (digit 2)
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
-            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
-        }
-        
-        // Row (N+2)'s TEN digit (digit 1)
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-        }
-    });
-}
-
-// Create connector bars for visual linking
-function createConnectorBars(numbers, allLogicResults) {
-    const connectorMap = new Map(); // Key: rowIndex, Value: array of connector info
-    
-    activeLogics.forEach(logicId => {
-        const { checkResults, validGroups } = allLogicResults[logicId];
-        
-        // Flatten all valid group check indices
-        const allValidCheckIndices = new Set();
-        validGroups.forEach(group => {
-            group.forEach(checkIndex => {
-                allValidCheckIndices.add(checkIndex);
-            });
-        });
-        
-        // For each valid check, create its connector bar
-        allValidCheckIndices.forEach(checkIndex => {
-            const check = checkResults[checkIndex];
-            const rowIndex = check.rowIndex;
-            
-            // Each check gets its own bar color based on checkIndex
-            const barClass = barClasses[checkIndex % barClasses.length];
-            
-            // Calculate the span of the connector bar
-            const startRow = rowIndex;
-            const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-            
-            // Store connector info for each row in the range
-            for (let r = startRow; r <= endRow; r++) {
-                if (!connectorMap.has(r)) {
-                    connectorMap.set(r, []);
-                }
-                connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
-            }
-        });
-    });
-    
-    return connectorMap;
-}
-
-// Render results grid
-function renderGrid(numbers, allLogicResults, digitColorMap) {
-    const connectorMap = createConnectorBars(numbers, allLogicResults);
-    
+function renderM1Grid(numbers, digitColorMap, connectorMap, validGroups) {
     let html = '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
@@ -301,7 +137,7 @@ function renderGrid(numbers, allLogicResults, digitColorMap) {
         connectors.forEach((connector, idx) => {
             const { startRow, endRow, barClass } = connector;
             const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65; // Approximate height per row
+            const barHeight = rowsSpanned * 65;
             const barTop = (startRow - i) * 65;
             
             html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
@@ -311,5 +147,265 @@ function renderGrid(numbers, allLogicResults, digitColorMap) {
     }
     
     html += '</div>';
-    resultsContainer.innerHTML = html;
+    m1Container.innerHTML = html;
+    
+    // Show summary
+    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
+    m1Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+}
+
+// ========== M2 LOGIC ==========
+function analyzeM2(numbers) {
+    // Calculate M2 matches: every 3 rows starting from Row 1
+    const checkResults = calculateM2Matches(numbers);
+    
+    // Identify consecutive groups
+    const groups = identifyConsecutiveGroups(checkResults);
+    
+    // Filter groups (only keep groups with 2+ consecutive matches)
+    const validGroups = groups.filter(group => group.length >= 2);
+    
+    // Create color mapping
+    const digitColorMap = createM2DigitColorMap(numbers, checkResults, validGroups);
+    
+    // Create connector bars
+    const connectorMap = createM2ConnectorBars(numbers, checkResults, validGroups);
+    
+    // Render grid
+    renderM2Grid(numbers, digitColorMap, connectorMap, validGroups);
+}
+
+function calculateM2Matches(numbers) {
+    const checkResults = [];
+    
+    // Check every 3 rows starting from Row 1 (index 0)
+    for (let i = 0; i + 3 < numbers.length; i += 3) {
+        // Hundreds: Row i, i+1, i+2
+        const h1 = parseInt(numbers[i][0]);
+        const h2 = parseInt(numbers[i + 1][0]);
+        const h3 = parseInt(numbers[i + 2][0]);
+        const hundredSum = h1 + h2 + h3;
+        const hundredUnitDigit = hundredSum % 10;
+        
+        // Units: Row i+2, i+3
+        const u1 = parseInt(numbers[i + 2][2]);
+        const u2 = parseInt(numbers[i + 3][2]);
+        const unitSum = u1 + u2;
+        const unitUnitDigit = unitSum % 10;
+        
+        // Check if match
+        const isMatch = hundredUnitDigit === unitUnitDigit;
+        checkResults.push({
+            rowIndex: i,
+            isMatch: isMatch,
+            hundredSum: hundredSum,
+            hundredUnitDigit: hundredUnitDigit,
+            unitSum: unitSum,
+            unitUnitDigit: unitUnitDigit
+        });
+    }
+    
+    return checkResults;
+}
+
+function createM2DigitColorMap(numbers, checkResults, validGroups) {
+    const digitColorMap = new Map();
+    
+    // Flatten all valid group check indices
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    // For each valid check, assign it a unique color
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        // Each check gets its own color based on checkIndex
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        // Color the hundreds digits: Row i, i+1, i+2 (hundred digit = digit 0)
+        digitColorMap.set(`${rowIndex}-0`, colorClass);
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-0`, colorClass);
+        }
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
+        }
+        
+        // Color the units digits: Row i+2, i+3 (unit digit = digit 2)
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-2`, colorClass);
+        }
+        if (rowIndex + 3 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 3}-2`, colorClass);
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createM2ConnectorBars(numbers, checkResults, validGroups) {
+    const connectorMap = new Map();
+    
+    // Flatten all valid group check indices
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    // For each valid check, create its connector bar
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        // Each check gets its own bar color
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        // Connector spans from Row i to Row i+3
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 3, numbers.length - 1);
+        
+        // Store connector info for each row in the range
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
+}
+
+function renderM2Grid(numbers, digitColorMap, connectorMap, validGroups) {
+    let html = '<div class="results-grid">';
+    
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        const connectors = connectorMap.get(i) || [];
+        
+        html += `<div class="row-item">
+            <div class="row-number">${i + 1}</div>
+            <div class="digits-container">`;
+        
+        // Add digits
+        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
+            const digit = num[digitIndex];
+            const colorKey = `${i}-${digitIndex}`;
+            const colorClass = digitColorMap.get(colorKey) || '';
+            const highlightClass = colorClass ? 'highlighted' : '';
+            
+            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
+        }
+        
+        // Add connector bars
+        connectors.forEach((connector, idx) => {
+            const { startRow, endRow, barClass } = connector;
+            const rowsSpanned = endRow - startRow + 1;
+            const barHeight = rowsSpanned * 65;
+            const barTop = (startRow - i) * 65;
+            
+            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    html += '</div>';
+    m2Container.innerHTML = html;
+    
+    // Show summary
+    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
+    m2Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+}
+
+// ========== SHARED UTILITIES ==========
+function identifyConsecutiveGroups(checkResults) {
+    const groups = [];
+    let currentGroup = [];
+    
+    for (let i = 0; i < checkResults.length; i++) {
+        if (checkResults[i].isMatch) {
+            currentGroup.push(i);
+        } else {
+            if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+                currentGroup = [];
+            }
+        }
+    }
+    
+    if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+    }
+    
+    return groups;
+}
+
+function createDigitColorMap(numbers, checkResults, validGroups) {
+    const digitColorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        digitColorMap.set(`${rowIndex}-2`, colorClass);
+        digitColorMap.set(`${rowIndex}-0`, colorClass);
+        
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
+            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
+        }
+        
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createConnectorBars(numbers, checkResults, validGroups) {
+    const connectorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+        
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
 }
