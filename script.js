@@ -10,6 +10,7 @@ const analyzeBtn = document.getElementById('analyzeBtn');
 const m1Container = document.getElementById('m1Container');
 const m2Container = document.getElementById('m2Container');
 const m3Container = document.getElementById('m3Container');
+const m4Container = document.getElementById('m4Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -57,6 +58,9 @@ function analyze() {
     
     // Calculate M3
     analyzeM3(validNumbers);
+    
+    // Calculate M4
+    analyzeM4(validNumbers);
 }
 
 // ========== M1 LOGIC ==========
@@ -575,4 +579,161 @@ function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
     // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
     m3Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+}
+
+// ========== M4 LOGIC ==========
+function analyzeM4(numbers) {
+    // Calculate M4 matches: every 5 rows starting from Row 1
+    const checkResults = calculateM4Matches(numbers);
+    
+    // Identify consecutive groups
+    const groups = identifyConsecutiveGroups(checkResults);
+    
+    // Filter groups (only keep groups with 2+ consecutive matches)
+    const validGroups = groups.filter(group => group.length >= 2);
+    
+    // Create color mapping
+    const digitColorMap = createM4DigitColorMap(numbers, checkResults, validGroups);
+    
+    // Create connector bars
+    const connectorMap = createM4ConnectorBars(numbers, checkResults, validGroups);
+    
+    // Render grid
+    renderM4Grid(numbers, digitColorMap, connectorMap, validGroups);
+}
+
+function calculateM4Matches(numbers) {
+    const checkResults = [];
+    
+    // Check every 5 rows starting from Row 1 (index 0)
+    // Formula: Row N ten + Row N+1 ten + Row N+2 ten -> sum unit digit = Row N+4 ten digit
+    for (let i = 0; i + 4 < numbers.length; i += 5) {
+        const t1 = parseInt(numbers[i][1]);     // Row N ten digit
+        const t2 = parseInt(numbers[i + 1][1]); // Row N+1 ten digit
+        const t3 = parseInt(numbers[i + 2][1]); // Row N+2 ten digit
+        const sum = t1 + t2 + t3;
+        const sumUnitDigit = sum % 10;
+        
+        // Target: Row N+4 ten digit
+        const targetTenDigit = parseInt(numbers[i + 4][1]);
+        
+        // Check if match
+        const isMatch = sumUnitDigit === targetTenDigit;
+        checkResults.push({
+            rowIndex: i,
+            isMatch: isMatch,
+            sum: sum,
+            sumUnitDigit: sumUnitDigit,
+            targetTenDigit: targetTenDigit
+        });
+    }
+    
+    return checkResults;
+}
+
+function createM4DigitColorMap(numbers, checkResults, validGroups) {
+    const digitColorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        // Color the ten digits of Row N, N+1, N+2 (digit index 1)
+        digitColorMap.set(`${rowIndex}-1`, colorClass);
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
+        }
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
+        }
+        
+        // Color the ten digit of Row N+4 (the target)
+        if (rowIndex + 4 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 4}-1`, colorClass);
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createM4ConnectorBars(numbers, checkResults, validGroups) {
+    const connectorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        // Connector spans from Row N to Row N+4
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 4, numbers.length - 1);
+        
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
+}
+
+function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
+    let html = '<div class="results-grid">';
+    
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        const connectors = connectorMap.get(i) || [];
+        
+        html += `<div class="row-item">
+            <div class="row-number">${i + 1}</div>
+            <div class="digits-container">`;
+        
+        // Add digits
+        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
+            const digit = num[digitIndex];
+            const colorKey = `${i}-${digitIndex}`;
+            const colorClass = digitColorMap.get(colorKey) || '';
+            const highlightClass = colorClass ? 'highlighted' : '';
+            
+            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
+        }
+        
+        // Add connector bars
+        connectors.forEach((connector, idx) => {
+            const { startRow, endRow, barClass } = connector;
+            const rowsSpanned = endRow - startRow + 1;
+            const barHeight = rowsSpanned * 65;
+            const barTop = (startRow - i) * 65;
+            
+            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    html += '</div>';
+    m4Container.innerHTML = html;
+    
+    // Show summary
+    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
+    m4Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
