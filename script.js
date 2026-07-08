@@ -9,6 +9,7 @@ const numberInput = document.getElementById('numberInput');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const m1Container = document.getElementById('m1Container');
 const m2Container = document.getElementById('m2Container');
+const m3Container = document.getElementById('m3Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -53,6 +54,9 @@ function analyze() {
     
     // Calculate M2
     analyzeM2(validNumbers);
+    
+    // Calculate M3
+    analyzeM3(validNumbers);
 }
 
 // ========== M1 LOGIC ==========
@@ -408,4 +412,167 @@ function createConnectorBars(numbers, checkResults, validGroups) {
     });
     
     return connectorMap;
+}
+
+// ========== M3 LOGIC ==========
+function analyzeM3(numbers) {
+    // Calculate M3 matches: every 3 rows starting from Row 1
+    const checkResults = calculateM3Matches(numbers);
+    
+    // Identify consecutive groups
+    const groups = identifyConsecutiveGroups(checkResults);
+    
+    // Filter groups (only keep groups with 2+ consecutive matches)
+    const validGroups = groups.filter(group => group.length >= 2);
+    
+    // Create color mapping
+    const digitColorMap = createM3DigitColorMap(numbers, checkResults, validGroups);
+    
+    // Create connector bars
+    const connectorMap = createM3ConnectorBars(numbers, checkResults, validGroups);
+    
+    // Render grid
+    renderM3Grid(numbers, digitColorMap, connectorMap, validGroups);
+}
+
+function calculateM3Matches(numbers) {
+    const checkResults = [];
+    
+    // Check every 3 rows starting from Row 1 (index 0)
+    // Formula: Row N+1 (ten + unit) sum unit digit = (Row N hundred + Row N+1 hundred + Row N+2 ten) sum unit digit
+    for (let i = 0; i + 2 < numbers.length; i += 3) {
+        // Left side: Row N+1 ten digit + unit digit
+        const tenDigit = parseInt(numbers[i + 1][1]);
+        const unitDigit = parseInt(numbers[i + 1][2]);
+        const leftSum = tenDigit + unitDigit;
+        const leftUnitDigit = leftSum % 10;
+        
+        // Right side: Row N hundred + Row N+1 hundred + Row N+2 ten digit
+        const h1 = parseInt(numbers[i][0]);
+        const h2 = parseInt(numbers[i + 1][0]);
+        const t3 = parseInt(numbers[i + 2][1]);
+        const rightSum = h1 + h2 + t3;
+        const rightUnitDigit = rightSum % 10;
+        
+        // Check if match
+        const isMatch = leftUnitDigit === rightUnitDigit;
+        checkResults.push({
+            rowIndex: i,
+            isMatch: isMatch,
+            leftSum: leftSum,
+            leftUnitDigit: leftUnitDigit,
+            rightSum: rightSum,
+            rightUnitDigit: rightUnitDigit
+        });
+    }
+    
+    return checkResults;
+}
+
+function createM3DigitColorMap(numbers, checkResults, validGroups) {
+    const digitColorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        // Left side: Row N+1 ten and unit digits (circled in image)
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-1`, colorClass); // ten digit
+            digitColorMap.set(`${rowIndex + 1}-2`, colorClass); // unit digit
+        }
+        
+        // Right side: Row N hundred, Row N+1 hundred, Row N+2 ten digit
+        digitColorMap.set(`${rowIndex}-0`, colorClass); // Row N hundred
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-0`, colorClass); // Row N+1 hundred
+        }
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass); // Row N+2 ten digit
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createM3ConnectorBars(numbers, checkResults, validGroups) {
+    const connectorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        // Connector spans from Row N to Row N+2
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+        
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
+}
+
+function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
+    let html = '<div class="results-grid">';
+    
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        const connectors = connectorMap.get(i) || [];
+        
+        html += `<div class="row-item">
+            <div class="row-number">${i + 1}</div>
+            <div class="digits-container">`;
+        
+        // Add digits
+        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
+            const digit = num[digitIndex];
+            const colorKey = `${i}-${digitIndex}`;
+            const colorClass = digitColorMap.get(colorKey) || '';
+            const highlightClass = colorClass ? 'highlighted' : '';
+            
+            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
+        }
+        
+        // Add connector bars
+        connectors.forEach((connector, idx) => {
+            const { startRow, endRow, barClass } = connector;
+            const rowsSpanned = endRow - startRow + 1;
+            const barHeight = rowsSpanned * 65;
+            const barTop = (startRow - i) * 65;
+            
+            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    html += '</div>';
+    m3Container.innerHTML = html;
+    
+    // Show summary
+    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
+    m3Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
