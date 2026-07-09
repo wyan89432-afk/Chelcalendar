@@ -11,6 +11,7 @@ const m1Container = document.getElementById('m1Container');
 const m2Container = document.getElementById('m2Container');
 const m3Container = document.getElementById('m3Container');
 const m4Container = document.getElementById('m4Container');
+const m5Container = document.getElementById('m5Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -61,6 +62,9 @@ function analyze() {
     
     // Calculate M4
     analyzeM4(validNumbers);
+    
+    // Calculate M5
+    analyzeM5(validNumbers);
 }
 
 // ========== M1 LOGIC ==========
@@ -736,4 +740,162 @@ function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
     // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
     m4Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+}
+
+// ========== M5 LOGIC ==========
+function analyzeM5(numbers) {
+    // Calculate M5 matches: every 3 rows starting from Row 1
+    const checkResults = calculateM5Matches(numbers);
+    
+    // Identify consecutive groups
+    const groups = identifyConsecutiveGroups(checkResults);
+    
+    // Filter groups (only keep groups with 2+ consecutive matches)
+    const validGroups = groups.filter(group => group.length >= 2);
+    
+    // Create color mapping
+    const digitColorMap = createM5DigitColorMap(numbers, checkResults, validGroups);
+    
+    // Create connector bars
+    const connectorMap = createM5ConnectorBars(numbers, checkResults, validGroups);
+    
+    // Render grid
+    renderM5Grid(numbers, digitColorMap, connectorMap, validGroups);
+}
+
+function calculateM5Matches(numbers) {
+    const checkResults = [];
+    
+    // Check every 3 rows starting from Row 1 (index 0)
+    // Formula: Row N ten digit = (Row N+1 hundred + Row N+2 hundred + Row N+2 ten) sum unit digit
+    for (let i = 0; i + 2 < numbers.length; i += 3) {
+        // Left side: Row N ten digit
+        const targetTenDigit = parseInt(numbers[i][1]);
+        
+        // Right side: Row N+1 hundred + Row N+2 hundred + Row N+2 ten
+        const h1 = parseInt(numbers[i + 1][0]); // Row N+1 hundred
+        const h2 = parseInt(numbers[i + 2][0]); // Row N+2 hundred
+        const t2 = parseInt(numbers[i + 2][1]); // Row N+2 ten
+        const rightSum = h1 + h2 + t2;
+        const rightUnitDigit = rightSum % 10;
+        
+        // Check if match
+        const isMatch = targetTenDigit === rightUnitDigit;
+        checkResults.push({
+            rowIndex: i,
+            isMatch: isMatch,
+            targetTenDigit: targetTenDigit,
+            rightSum: rightSum,
+            rightUnitDigit: rightUnitDigit
+        });
+    }
+    
+    return checkResults;
+}
+
+function createM5DigitColorMap(numbers, checkResults, validGroups) {
+    const digitColorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        // Color Row N ten digit (the target - circled in pink)
+        digitColorMap.set(`${rowIndex}-1`, colorClass);
+        
+        // Color Row N+1 hundred digit
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-0`, colorClass);
+        }
+        
+        // Color Row N+2 hundred and ten digits
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createM5ConnectorBars(numbers, checkResults, validGroups) {
+    const connectorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.rowIndex;
+        
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        // Connector spans from Row N to Row N+2
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+        
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
+}
+
+function renderM5Grid(numbers, digitColorMap, connectorMap, validGroups) {
+    let html = '<div class="results-grid">';
+    
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        const connectors = connectorMap.get(i) || [];
+        
+        html += `<div class="row-item">
+            <div class="row-number">${i + 1}</div>
+            <div class="digits-container">`;
+        
+        // Add digits
+        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
+            const digit = num[digitIndex];
+            const colorKey = `${i}-${digitIndex}`;
+            const colorClass = digitColorMap.get(colorKey) || '';
+            const highlightClass = colorClass ? 'highlighted' : '';
+            
+            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
+        }
+        
+        // Add connector bars
+        connectors.forEach((connector, idx) => {
+            const { startRow, endRow, barClass } = connector;
+            const rowsSpanned = endRow - startRow + 1;
+            const barHeight = rowsSpanned * 65;
+            const barTop = (startRow - i) * 65;
+            
+            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    html += '</div>';
+    m5Container.innerHTML = html;
+    
+    // Show summary
+    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
+    m5Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
 }
