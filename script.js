@@ -91,8 +91,8 @@ function analyzeM1(numbers) {
 function calculateM1Matches(numbers) {
     const checkResults = [];
     
-    // Start from Row 2 (index 1) and check every 2 rows
-    for (let i = 1; i + 2 < numbers.length; i += 2) {
+    // Check every row starting from Row 1 (index 0)
+    for (let i = 0; i + 2 < numbers.length; i++) {
         const currentNum = numbers[i];
         const nextNum = numbers[i + 1];
         const nextNextNum = numbers[i + 2];
@@ -190,8 +190,8 @@ function analyzeM2(numbers) {
 function calculateM2Matches(numbers) {
     const checkResults = [];
     
-    // Check every 3 rows starting from Row 1 (index 0)
-    for (let i = 0; i + 3 < numbers.length; i += 3) {
+    // Check every row
+    for (let i = 0; i + 3 < numbers.length; i++) {
         // Hundreds: Row i, i+1, i+2
         const h1 = parseInt(numbers[i][0]);
         const h2 = parseInt(numbers[i + 1][0]);
@@ -446,9 +446,9 @@ function analyzeM3(numbers) {
 function calculateM3Matches(numbers) {
     const checkResults = [];
     
-    // Check every 3 rows starting from Row 1 (index 0)
+    // Check every row
     // Formula: Row N+1 (ten + unit) sum unit digit = (Row N hundred + Row N+1 hundred + Row N+2 ten) sum unit digit
-    for (let i = 0; i + 2 < numbers.length; i += 3) {
+    for (let i = 0; i + 2 < numbers.length; i++) {
         // Left side: Row N+1 ten digit + unit digit
         const tenDigit = parseInt(numbers[i + 1][1]);
         const unitDigit = parseInt(numbers[i + 1][2]);
@@ -609,9 +609,9 @@ function analyzeM4(numbers) {
 function calculateM4Matches(numbers) {
     const checkResults = [];
     
-    // Check every 5 rows starting from Row 1 (index 0)
+    // Check every row
     // Formula: Row N ten + Row N+1 ten + Row N+2 ten -> sum unit digit = Row N+4 ten digit
-    for (let i = 0; i + 4 < numbers.length; i += 5) {
+    for (let i = 0; i + 4 < numbers.length; i++) {
         const t1 = parseInt(numbers[i][1]);     // Row N ten digit
         const t2 = parseInt(numbers[i + 1][1]); // Row N+1 ten digit
         const t3 = parseInt(numbers[i + 2][1]); // Row N+2 ten digit
@@ -766,9 +766,9 @@ function analyzeM5(numbers) {
 function calculateM5Matches(numbers) {
     const checkResults = [];
     
-    // Check every 3 rows starting from Row 1 (index 0)
+    // Check every row
     // Formula: Row N ten digit = (Row N+1 hundred + Row N+2 hundred + Row N+2 ten) sum unit digit
-    for (let i = 0; i + 2 < numbers.length; i += 3) {
+    for (let i = 0; i + 2 < numbers.length; i++) {
         // Left side: Row N ten digit
         const targetTenDigit = parseInt(numbers[i][1]);
         
