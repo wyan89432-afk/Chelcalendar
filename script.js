@@ -224,30 +224,23 @@ function createM3Bars(results, numbers, barClasses) {
 }
 
 // ========== M4 LOGIC ==========
+// Step of 5: Row 1→(1,2,3 ten vs Row 5 ten), Row 6→(6,7,8 ten vs Row 10 ten), Row 11→(11,12,13 ten vs Row 15 ten)...
+// Formula: (Row N ten + Row N+1 ten + Row N+2 ten) % 10 == Row N+4 ten
 function analyzeM4(numbers) {
-    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
-    const oddResults = calculateM4MatchesSubset(oddNumbers);
-    const evenResults = calculateM4MatchesSubset(evenNumbers);
-    
-    let html = '<div class="split-tables">';
-    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM4ColorMap, createM4Bars);
-    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM4ColorMap, createM4Bars);
-    html += '</div>';
-    m4Container.innerHTML = html;
-}
-
-function calculateM4MatchesSubset(subset) {
     const results = [];
-    for (let i = 0; i + 4 < subset.length; i++) {
-        const sum = (parseInt(subset[i].value[1]) + parseInt(subset[i+1].value[1]) + parseInt(subset[i+2].value[1])) % 10;
+    for (let i = 0; i + 4 < numbers.length; i += 5) {
+        const sum = (parseInt(numbers[i][1]) + parseInt(numbers[i+1][1]) + parseInt(numbers[i+2][1])) % 10;
         results.push({
-            subIndex: i,
-            actualRowIndex: subset[i].actualIndex,
-            isMatch: sum === parseInt(subset[i+4].value[1]),
-            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex, subset[i+4].actualIndex]
+            actualRowIndex: i,
+            isMatch: sum === parseInt(numbers[i+4][1]),
+            indices: [i, i+1, i+2, i+4]
         });
     }
-    return results;
+    
+    let html = '<div class="split-tables single">';
+    html += renderSubTable(numbers, results, 'odd', 'M4 Results', createM4ColorMap, createM4Bars);
+    html += '</div>';
+    m4Container.innerHTML = html;
 }
 
 function createM4ColorMap(results, numbers, colorClasses) {
