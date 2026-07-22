@@ -138,24 +138,39 @@ function createM1Bars(results, numbers, barClasses) {
 }
 
 // ========== M2 LOGIC ==========
-// Step of 3: Row 1→(1,2,3 vs 3,4), Row 4→(4,5,6 vs 6,7), Row 7→(7,8,9 vs 9,10)...
+// Odd scan checks Row 1,3,5,7... using actual consecutive rows (N, N+1, N+2 vs N+3)
+// Even scan checks Row 2,4,6,8... using actual consecutive rows (N, N+1, N+2 vs N+3)
 // Formula: (Row N hundred + Row N+1 hundred + Row N+2 hundred) % 10 == (Row N+2 unit + Row N+3 unit) % 10
 function analyzeM2(numbers) {
-    const results = [];
-    for (let i = 0; i + 3 < numbers.length; i += 3) {
-        const hSum = parseInt(numbers[i][0]) + parseInt(numbers[i+1][0]) + parseInt(numbers[i+2][0]);
-        const uSum = parseInt(numbers[i+2][2]) + parseInt(numbers[i+3][2]);
-        results.push({
-            actualRowIndex: i,
-            isMatch: (hSum % 10) === (uSum % 10),
-            indices: [i, i+1, i+2, i+3]
-        });
-    }
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM2MatchesSubset(oddNumbers, numbers);
+    const evenResults = calculateM2MatchesSubset(evenNumbers, numbers);
     
-    let html = '<div class="split-tables single">';
-    html += renderSubTable(numbers, results, 'odd', 'M2 Results', createM2ColorMap, createM2Bars);
+    let html = '<div class="split-tables">';
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM2ColorMap, createM2Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM2ColorMap, createM2Bars);
     html += '</div>';
     m2Container.innerHTML = html;
+}
+
+function calculateM2MatchesSubset(subset, allNumbers) {
+    const results = [];
+    for (let i = 0; i < subset.length; i++) {
+        const nIdx = subset[i].actualIndex;
+        // Need Row N, N+1, N+2, N+3 (4 consecutive actual rows)
+        if (nIdx + 3 >= allNumbers.length) break;
+        
+        const hSum = parseInt(allNumbers[nIdx][0]) + parseInt(allNumbers[nIdx+1][0]) + parseInt(allNumbers[nIdx+2][0]);
+        const uSum = parseInt(allNumbers[nIdx+2][2]) + parseInt(allNumbers[nIdx+3][2]);
+        
+        results.push({
+            subIndex: i,
+            actualRowIndex: nIdx,
+            isMatch: (hSum % 10) === (uSum % 10),
+            indices: [nIdx, nIdx+1, nIdx+2, nIdx+3]
+        });
+    }
+    return results;
 }
 
 function createM2ColorMap(results, numbers, colorClasses) {
@@ -353,17 +368,19 @@ function createM5Bars(results, numbers, barClasses) {
 // ========== M6 LOGIC ==========
 // Formula: S = H_N + U_N + H_{N+1}
 // If S%10 == Row N+1 ten digit → match
-// Odd scan checks Row 1,3,5,7... using actual N+1
-// Even scan checks Row 2,4,6,8... using actual N+1
-// Highlight: Row N (hundred, unit) + Row N+1 (hundred) grouped, Row N+1 ten circled
+// Consecutive scanning: Row 1→2, Row 2→3, Row 3→4...
+// Odd scan checks Row 1,3,5,7... (step-of-2 in actual list)
+// Even scan checks Row 2,4,6,8... (step-of-2 in actual list)
+// Highlight: Row N (hundred, unit) + Row N+1 (hundred) grouped
+// Straight Arrow: Row N unit digit → Row N+1 hundred digit (source only, NOT result)
 function analyzeM6(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     const oddResults = calculateM6MatchesSubset(oddNumbers, numbers);
     const evenResults = calculateM6MatchesSubset(evenNumbers, numbers);
     
     let html = '<div class="split-tables">';
-    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM6ColorMap, createM6Bars);
-    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM6ColorMap, createM6Bars);
+    html += renderSubTableM6(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)');
+    html += renderSubTableM6(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)');
     html += '</div>';
     m6Container.innerHTML = html;
 }
@@ -391,29 +408,84 @@ function calculateM6MatchesSubset(subset, allNumbers) {
     return results;
 }
 
-function createM6ColorMap(results, numbers, colorClasses) {
-    const map = new Map();
-    results.filter(r => r.isMatch).forEach((r, idx) => {
+function renderSubTableM6(numbers, results, cssClass, title) {
+    const matches = results.filter(r => r.isMatch);
+    
+    // Build color map: each match group gets a color
+    const colorMap = new Map();
+    const arrowMap = new Map(); // arrows per start row index
+    matches.forEach((r, idx) => {
         const color = colorClasses[idx % colorClasses.length];
+        const bar = barClasses[idx % barClasses.length];
         // Highlight Row N: hundred (digit 0) and unit (digit 2)
         // Highlight Row N+1: hundred (digit 0)
-        map.set(`${r.indices[0]}-0`, color); map.set(`${r.indices[0]}-2`, color);
-        map.set(`${r.indices[1]}-0`, color);
+        colorMap.set(`${r.indices[0]}-0`, color);
+        colorMap.set(`${r.indices[0]}-2`, color);
+        colorMap.set(`${r.indices[1]}-0`, color);
+        // Arrow: Row n unit (digit 2) → Row n+1 hundred (digit 0)
+        const nIdx = r.indices[0];
+        const n1Idx = r.indices[1];
+        if (!arrowMap.has(nIdx)) arrowMap.set(nIdx, []);
+        arrowMap.get(nIdx).push({ startDigit: 2, endDigit: 0, barClass: bar, startRow: nIdx, endRow: n1Idx });
     });
-    return map;
-}
-
-function createM6Bars(results, numbers, barClasses) {
-    const map = new Map();
-    results.filter(r => r.isMatch).forEach((r, idx) => {
-        const bar = barClasses[idx % barClasses.length];
-        const start = r.indices[0], end = r.indices[1];
-        for (let i = start; i <= end; i++) {
-            if (!map.has(i)) map.set(i, []);
-            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
+    
+    // digit-box: 45px wide + 8px gap, row-item height ~65px, digit-box height 45px
+    // digit 0 center X: 22.5px
+    // digit 1 center X: 45+8+22.5 = 75.5px
+    // digit 2 center X: 45+8+45+8+22.5 = 128.5px
+    const digitCenterX = [22.5, 75.5, 128.5];
+    const ROW_HEIGHT = 65;
+    const DIGIT_BOX_HEIGHT = 45;
+    // Start Y = center of digit box in Row n: (ROW_HEIGHT - DIGIT_BOX_HEIGHT)/2 + DIGIT_BOX_HEIGHT/2 = ROW_HEIGHT/2 = 32.5
+    const startCenterY = ROW_HEIGHT / 2; // 32.5px from row-item top
+    // End Y = center of digit box in Row n+1: ROW_HEIGHT + ROW_HEIGHT/2 = 65 + 32.5 = 97.5
+    const endCenterY = ROW_HEIGHT + ROW_HEIGHT / 2; // 97.5px
+    
+    let html = `<div class="sub-table ${cssClass}"><h3 class="sub-table-title">${title}</h3><div class="results-grid">`;
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        const arrows = arrowMap.get(i) || [];
+        html += `<div class="row-item"><div class="row-number">${i+1}</div><div class="digits-container">`;
+        for (let d = 0; d < 3; d++) {
+            const color = colorMap.get(`${i}-${d}`) || '';
+            html += `<div class="digit-box ${color} ${color ? 'highlighted' : ''}">${num[d]}</div>`;
         }
-    });
-    return map;
+        // Draw SVG arrows from Row n unit digit center → Row n+1 hundred digit center
+        arrows.forEach(arrow => {
+            const sx = digitCenterX[arrow.startDigit];
+            const sy = startCenterY;
+            const ex = digitCenterX[arrow.endDigit];
+            const ey = endCenterY;
+            const color = arrow.barClass.replace('bar-', '');
+            const colorHex = {
+                'red': '#cc0000', 'blue': '#0033cc', 'green': '#009933',
+                'purple': '#aa00aa', 'orange': '#cc6600', 'cyan': '#009999',
+                'pink': '#cc0077', 'yellow': '#ccaa00', 'brown': '#654321', 'teal': '#004d4d'
+            }[color] || '#cc0000';
+            const minX = Math.min(sx, ex);
+            const minY = Math.min(sy, ey);
+            const maxX = Math.max(sx, ex);
+            const maxY = Math.max(sy, ey);
+            const svgW = maxX - minX + 6;
+            const svgH = maxY - minY + 6;
+            const svgX = sx < ex ? sx - 3 : ex - 3;
+            const svgY = minY - 3;
+            const arrowSize = 8;
+            // Arrowhead: if line goes right-down, arrowhead at end pointing down-right
+            const dx = ex - sx, dy = ey - sy;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const nx = dx/len, ny = dy/len;
+            const ax = ex - nx * arrowSize, ay = ey - ny * arrowSize;
+            const headPoints = `${ex},${ey} ${ax - ny * arrowSize * 0.5},${ay + nx * arrowSize * 0.5} ${ax + ny * arrowSize * 0.5},${ay - nx * arrowSize * 0.5}`;
+            html += `<svg class="m6-arrow-svg" width="${svgW}" height="${svgH}" style="position:absolute;left:${svgX}px;top:${svgY}px;z-index:3;pointer-events:none;">
+                <line x1="${sx-minX+3}" y1="${sy-minY+3}" x2="${ex-minX+3}" y2="${ey-minY+3}" stroke="${colorHex}" stroke-width="3" stroke-linecap="round"/>
+                <polygon points="${headPoints.replace(/(\d+\.?\d*),(\d+\.?\d*)/g, (m,x,y) => `${parseFloat(x)-minX+3},${parseFloat(y)-minY+3}`)}" fill="${colorHex}"/>
+            </svg>`;
+        });
+        html += `</div></div>`;
+    }
+    html += `</div><div class="status-message status-info">ကိုက်ညီမှုများ: ${matches.length}</div></div>`;
+    return html;
 }
 
 // ========== M7 LOGIC ==========

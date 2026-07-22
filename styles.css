@@ -467,3 +467,9 @@ footer {
     background: #eafaf1;
     color: #1e8449;
 }
+
+/* ========== M6 Straight Arrow (SVG) ========== */
+.m6-arrow-svg {
+    position: absolute;
+    pointer-events: none;
+}
