@@ -76,8 +76,8 @@ function identifyConsecutiveGroups(checkResults) {
 // ========== M1 LOGIC ==========
 function analyzeM1(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
-    const oddResults = calculateM1MatchesSubset(oddNumbers);
-    const evenResults = calculateM1MatchesSubset(evenNumbers);
+    const oddResults = calculateM1MatchesSubset(oddNumbers, numbers);
+    const evenResults = calculateM1MatchesSubset(evenNumbers, numbers);
     
     let html = '<div class="split-tables">';
     html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM1ColorMap, createM1Bars);
@@ -86,16 +86,24 @@ function analyzeM1(numbers) {
     m1Container.innerHTML = html;
 }
 
-function calculateM1MatchesSubset(subset) {
+function calculateM1MatchesSubset(subset, allNumbers) {
     const results = [];
-    for (let i = 0; i + 2 < subset.length; i++) {
-        const n = subset[i].value, n1 = subset[i+1].value, n2 = subset[i+2].value;
-        const sum = parseInt(n[2]) + parseInt(n1[1]) + parseInt(n1[2]) + parseInt(n2[0]);
+    for (let i = 0; i < subset.length; i++) {
+        const nIdx = subset[i].actualIndex;
+        // Check if Row N+1 and N+2 exist in the full list
+        if (nIdx + 2 >= allNumbers.length) break;
+        
+        const n = allNumbers[nIdx];
+        const n1 = allNumbers[nIdx + 1]; // actual Row N+1
+        const n2 = allNumbers[nIdx + 2]; // actual Row N+2
+        
+        // Formula: Row N unit + Row N+1 ten + Row N+1 unit + Row N+2 ten
+        const sum = parseInt(n[2]) + parseInt(n1[1]) + parseInt(n1[2]) + parseInt(n2[1]);
         results.push({
             subIndex: i,
-            actualRowIndex: subset[i].actualIndex,
+            actualRowIndex: nIdx,
             isMatch: (sum % 10) === parseInt(n[0]),
-            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex]
+            indices: [nIdx, nIdx + 1, nIdx + 2] // actual row indices
         });
     }
     return results;
@@ -107,7 +115,7 @@ function createM1ColorMap(results, numbers, colorClasses) {
         const color = colorClasses[idx % colorClasses.length];
         map.set(`${r.indices[0]}-0`, color); map.set(`${r.indices[0]}-2`, color);
         map.set(`${r.indices[1]}-1`, color); map.set(`${r.indices[1]}-2`, color);
-        map.set(`${r.indices[2]}-0`, color);
+        map.set(`${r.indices[2]}-1`, color); // Row N+2 TEN digit (not hundred)
     });
     return map;
 }
