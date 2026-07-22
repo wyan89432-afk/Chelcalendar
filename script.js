@@ -179,31 +179,24 @@ function createM2Bars(results, numbers, barClasses) {
 }
 
 // ========== M3 LOGIC ==========
+// Step of 3: Row 1→(1,2,3), Row 4→(4,5,6), Row 7→(7,8,9)...
+// Formula: (Row N+1 ten + Row N+1 unit) % 10 == (Row N hundred + Row N+1 hundred + Row N+2 ten) % 10
 function analyzeM3(numbers) {
-    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
-    const oddResults = calculateM3MatchesSubset(oddNumbers);
-    const evenResults = calculateM3MatchesSubset(evenNumbers);
-    
-    let html = '<div class="split-tables">';
-    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM3ColorMap, createM3Bars);
-    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM3ColorMap, createM3Bars);
-    html += '</div>';
-    m3Container.innerHTML = html;
-}
-
-function calculateM3MatchesSubset(subset) {
     const results = [];
-    for (let i = 0; i + 2 < subset.length; i++) {
-        const left = (parseInt(subset[i+1].value[1]) + parseInt(subset[i+1].value[2])) % 10;
-        const right = (parseInt(subset[i].value[0]) + parseInt(subset[i+1].value[0]) + parseInt(subset[i+2].value[1])) % 10;
+    for (let i = 0; i + 2 < numbers.length; i += 3) {
+        const left = (parseInt(numbers[i+1][1]) + parseInt(numbers[i+1][2])) % 10;
+        const right = (parseInt(numbers[i][0]) + parseInt(numbers[i+1][0]) + parseInt(numbers[i+2][1])) % 10;
         results.push({
-            subIndex: i,
-            actualRowIndex: subset[i].actualIndex,
+            actualRowIndex: i,
             isMatch: left === right,
-            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex]
+            indices: [i, i+1, i+2]
         });
     }
-    return results;
+    
+    let html = '<div class="split-tables single">';
+    html += renderSubTable(numbers, results, 'odd', 'M3 Results', createM3ColorMap, createM3Bars);
+    html += '</div>';
+    m3Container.innerHTML = html;
 }
 
 function createM3ColorMap(results, numbers, colorClasses) {
