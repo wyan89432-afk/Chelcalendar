@@ -134,31 +134,24 @@ function createM1Bars(results, numbers, barClasses) {
 }
 
 // ========== M2 LOGIC ==========
+// Step of 3: Row 1→(1,2,3 vs 3,4), Row 4→(4,5,6 vs 6,7), Row 7→(7,8,9 vs 9,10)...
+// Formula: (Row N hundred + Row N+1 hundred + Row N+2 hundred) % 10 == (Row N+2 unit + Row N+3 unit) % 10
 function analyzeM2(numbers) {
-    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
-    const oddResults = calculateM2MatchesSubset(oddNumbers);
-    const evenResults = calculateM2MatchesSubset(evenNumbers);
-    
-    let html = '<div class="split-tables">';
-    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM2ColorMap, createM2Bars);
-    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM2ColorMap, createM2Bars);
-    html += '</div>';
-    m2Container.innerHTML = html;
-}
-
-function calculateM2MatchesSubset(subset) {
     const results = [];
-    for (let i = 0; i + 3 < subset.length; i++) {
-        const hSum = parseInt(subset[i].value[0]) + parseInt(subset[i+1].value[0]) + parseInt(subset[i+2].value[0]);
-        const uSum = parseInt(subset[i+2].value[2]) + parseInt(subset[i+3].value[2]);
+    for (let i = 0; i + 3 < numbers.length; i += 3) {
+        const hSum = parseInt(numbers[i][0]) + parseInt(numbers[i+1][0]) + parseInt(numbers[i+2][0]);
+        const uSum = parseInt(numbers[i+2][2]) + parseInt(numbers[i+3][2]);
         results.push({
-            subIndex: i,
-            actualRowIndex: subset[i].actualIndex,
+            actualRowIndex: i,
             isMatch: (hSum % 10) === (uSum % 10),
-            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex, subset[i+3].actualIndex]
+            indices: [i, i+1, i+2, i+3]
         });
     }
-    return results;
+    
+    let html = '<div class="split-tables single">';
+    html += renderSubTable(numbers, results, 'odd', 'M2 Results', createM2ColorMap, createM2Bars);
+    html += '</div>';
+    m2Container.innerHTML = html;
 }
 
 function createM2ColorMap(results, numbers, colorClasses) {
