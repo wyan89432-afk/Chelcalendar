@@ -12,6 +12,7 @@ const m2Container = document.getElementById('m2Container');
 const m3Container = document.getElementById('m3Container');
 const m4Container = document.getElementById('m4Container');
 const m5Container = document.getElementById('m5Container');
+const m6Container = document.getElementById('m6Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -46,6 +47,7 @@ function analyze() {
     analyzeM3(validNumbers);
     analyzeM4(validNumbers);
     analyzeM5(validNumbers);
+    analyzeM6(validNumbers);
 }
 
 // Utility: Odd/Even split
@@ -338,6 +340,72 @@ function createM5Bars(results, numbers, barClasses) {
     results.filter(r => r.isMatch).forEach((r, idx) => {
         const bar = barClasses[idx % barClasses.length];
         const start = r.indices[0], end = r.indices[2];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
+        }
+    });
+    return map;
+}
+
+// ========== M6 LOGIC ==========
+// Formula: S = H_N + U_N + H_{N+1}
+// If S%10 == Row N+1 ten digit → match
+// Odd scan checks Row 1,3,5,7... using actual N+1
+// Even scan checks Row 2,4,6,8... using actual N+1
+// Highlight: Row N (hundred, unit) + Row N+1 (hundred) grouped, Row N+1 ten circled
+function analyzeM6(numbers) {
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM6MatchesSubset(oddNumbers, numbers);
+    const evenResults = calculateM6MatchesSubset(evenNumbers, numbers);
+    
+    let html = '<div class="split-tables">';
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM6ColorMap, createM6Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM6ColorMap, createM6Bars);
+    html += '</div>';
+    m6Container.innerHTML = html;
+}
+
+function calculateM6MatchesSubset(subset, allNumbers) {
+    const results = [];
+    for (let i = 0; i < subset.length; i++) {
+        const nIdx = subset[i].actualIndex;
+        // Check if Row N+1 exists
+        if (nIdx + 1 >= allNumbers.length) break;
+        
+        // S = H_N + U_N + H_{N+1}
+        const s = parseInt(allNumbers[nIdx][0]) + parseInt(allNumbers[nIdx][2]) + parseInt(allNumbers[nIdx+1][0]);
+        // Compare S%10 with Row N+1 ten digit
+        const sMod10 = s % 10;
+        const n1Ten = parseInt(allNumbers[nIdx+1][1]);
+        
+        results.push({
+            subIndex: i,
+            actualRowIndex: nIdx,
+            isMatch: sMod10 === n1Ten,
+            indices: [nIdx, nIdx+1]
+        });
+    }
+    return results;
+}
+
+function createM6ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        // Highlight Row N: hundred (digit 0) and unit (digit 2)
+        // Highlight Row N+1: hundred (digit 0)
+        map.set(`${r.indices[0]}-0`, color); map.set(`${r.indices[0]}-2`, color);
+        map.set(`${r.indices[1]}-0`, color);
+    });
+    return map;
+}
+
+function createM6Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[1];
         for (let i = start; i <= end; i++) {
             if (!map.has(i)) map.set(i, []);
             map.get(i).push({ startRow: start, endRow: end, barClass: bar });
