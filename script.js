@@ -51,51 +51,101 @@ function analyze() {
     
     currentNumbers = validNumbers;
     
-    // Calculate M1
+    // Calculate M1 (split into odd/even)
     analyzeM1(validNumbers);
     
-    // Calculate M2
+    // Calculate M2 (split into odd/even)
     analyzeM2(validNumbers);
     
-    // Calculate M3
+    // Calculate M3 (split into odd/even)
     analyzeM3(validNumbers);
     
-    // Calculate M4
+    // Calculate M4 (split into odd/even)
     analyzeM4(validNumbers);
     
-    // Calculate M5
+    // Calculate M5 (no split needed - user didn't mention M5)
     analyzeM5(validNumbers);
+}
+
+// ========== SHARED UTILITY: Get odd/even indexed numbers ==========
+function getOddEvenNumbers(numbers) {
+    const oddNumbers = [];   // indices 0, 2, 4, 6... → Rows 1, 3, 5, 7...
+    const evenNumbers = [];  // indices 1, 3, 5, 7... → Rows 2, 4, 6, 8...
+    
+    for (let i = 0; i < numbers.length; i++) {
+        if (i % 2 === 0) {
+            oddNumbers.push({ actualIndex: i, value: numbers[i] });
+        } else {
+            evenNumbers.push({ actualIndex: i, value: numbers[i] });
+        }
+    }
+    
+    return { oddNumbers, evenNumbers };
+}
+
+// ========== SHARED UTILITY: Identify consecutive groups within a sub-table ==========
+function identifyConsecutiveGroups(checkResults) {
+    const groups = [];
+    let currentGroup = [];
+    
+    for (let i = 0; i < checkResults.length; i++) {
+        if (checkResults[i].isMatch) {
+            currentGroup.push(i);
+        } else {
+            if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+                currentGroup = [];
+            }
+        }
+    }
+    
+    if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+    }
+    
+    return groups;
 }
 
 // ========== M1 LOGIC ==========
 function analyzeM1(numbers) {
-    // Calculate matches using skip-row pattern (Row 2, 4, 6, 8...)
-    const checkResults = calculateM1Matches(numbers);
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     
-    // Identify consecutive groups of matches
-    const groups = identifyConsecutiveGroups(checkResults);
+    // Calculate odd sub-table
+    const oddCheckResults = calculateM1MatchesSubset(oddNumbers, numbers);
+    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
+    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
+    const oddDigitColorMap = createM1DigitColorMap(oddCheckResults, oddValidGroups, numbers);
+    const oddConnectorMap = createM1ConnectorBars(oddCheckResults, oddValidGroups, numbers);
     
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
+    // Calculate even sub-table
+    const evenCheckResults = calculateM1MatchesSubset(evenNumbers, numbers);
+    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
+    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
+    const evenDigitColorMap = createM1DigitColorMap(evenCheckResults, evenValidGroups, numbers);
+    const evenConnectorMap = createM1ConnectorBars(evenCheckResults, evenValidGroups, numbers);
     
-    // Create color mapping for digit highlighting
-    const digitColorMap = createDigitColorMap(numbers, checkResults, validGroups);
+    // Render both sub-tables
+    let html = '<div class="split-tables">';
     
-    // Create connector bars
-    const connectorMap = createConnectorBars(numbers, checkResults, validGroups);
+    // Odd table
+    html += renderM1SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
     
-    // Render grid
-    renderM1Grid(numbers, digitColorMap, connectorMap, validGroups);
+    // Even table
+    html += renderM1SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    
+    html += '</div>';
+    m1Container.innerHTML = html;
 }
 
-function calculateM1Matches(numbers) {
+function calculateM1MatchesSubset(subset, allNumbers) {
     const checkResults = [];
     
-    // Check every row starting from Row 1 (index 0)
-    for (let i = 0; i + 2 < numbers.length; i++) {
-        const currentNum = numbers[i];
-        const nextNum = numbers[i + 1];
-        const nextNextNum = numbers[i + 2];
+    // subset is array of { actualIndex, value }
+    // We check consecutive entries in the subset
+    for (let i = 0; i + 2 < subset.length; i++) {
+        const currentNum = subset[i].value;
+        const nextNum = subset[i + 1].value;
+        const nextNextNum = subset[i + 2].value;
         
         // Extract digits according to formula
         const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit
@@ -113,7 +163,8 @@ function calculateM1Matches(numbers) {
         // Check if match
         const isMatch = sumUnitDigit === currentHundredDigit;
         checkResults.push({
-            rowIndex: i,
+            subIndex: i,
+            actualRowIndex: subset[i].actualIndex,
             isMatch: isMatch,
             sum: sum,
             sumUnitDigit: sumUnitDigit,
@@ -124,8 +175,77 @@ function calculateM1Matches(numbers) {
     return checkResults;
 }
 
-function renderM1Grid(numbers, digitColorMap, connectorMap, validGroups) {
-    let html = '<div class="results-grid">';
+function createM1DigitColorMap(checkResults, validGroups, numbers) {
+    const digitColorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.actualRowIndex;
+        
+        const colorClass = colorClasses[checkIndex % colorClasses.length];
+        
+        digitColorMap.set(`${rowIndex}-2`, colorClass);
+        digitColorMap.set(`${rowIndex}-0`, colorClass);
+        
+        if (rowIndex + 1 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
+            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
+        }
+        
+        if (rowIndex + 2 < numbers.length) {
+            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
+        }
+    });
+    
+    return digitColorMap;
+}
+
+function createM1ConnectorBars(checkResults, validGroups, numbers) {
+    const connectorMap = new Map();
+    
+    const allValidCheckIndices = new Set();
+    validGroups.forEach(group => {
+        group.forEach(checkIndex => {
+            allValidCheckIndices.add(checkIndex);
+        });
+    });
+    
+    allValidCheckIndices.forEach(checkIndex => {
+        const check = checkResults[checkIndex];
+        const rowIndex = check.actualRowIndex;
+        
+        const barClass = barClasses[checkIndex % barClasses.length];
+        
+        const startRow = rowIndex;
+        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
+        
+        for (let r = startRow; r <= endRow; r++) {
+            if (!connectorMap.has(r)) {
+                connectorMap.set(r, []);
+            }
+            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+        }
+    });
+    
+    return connectorMap;
+}
+
+function renderM1SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
+    if (subset.length === 0) return '';
+    
+    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
+    const labelText = labelMap[label] || label;
+    
+    let html = `<div class="sub-table ${label}">`;
+    html += `<h3 class="sub-table-title">${labelText}</h3>`;
+    html += '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
         const num = numbers[i];
@@ -159,56 +279,63 @@ function renderM1Grid(numbers, digitColorMap, connectorMap, validGroups) {
     }
     
     html += '</div>';
-    m1Container.innerHTML = html;
     
     // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    m1Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+    html += `<div class="status-message status-info">${summaryText}</div>`;
+    html += '</div>';
+    
+    return html;
 }
 
 // ========== M2 LOGIC ==========
 function analyzeM2(numbers) {
-    // Calculate M2 matches: every 3 rows starting from Row 1
-    const checkResults = calculateM2Matches(numbers);
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     
-    // Identify consecutive groups
-    const groups = identifyConsecutiveGroups(checkResults);
+    // Calculate odd sub-table
+    const oddCheckResults = calculateM2MatchesSubset(oddNumbers, numbers);
+    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
+    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
+    const oddDigitColorMap = createM2DigitColorMap(oddCheckResults, oddValidGroups, numbers);
+    const oddConnectorMap = createM2ConnectorBars(oddCheckResults, oddValidGroups, numbers);
     
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
+    // Calculate even sub-table
+    const evenCheckResults = calculateM2MatchesSubset(evenNumbers, numbers);
+    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
+    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
+    const evenDigitColorMap = createM2DigitColorMap(evenCheckResults, evenValidGroups, numbers);
+    const evenConnectorMap = createM2ConnectorBars(evenCheckResults, evenValidGroups, numbers);
     
-    // Create color mapping
-    const digitColorMap = createM2DigitColorMap(numbers, checkResults, validGroups);
-    
-    // Create connector bars
-    const connectorMap = createM2ConnectorBars(numbers, checkResults, validGroups);
-    
-    // Render grid
-    renderM2Grid(numbers, digitColorMap, connectorMap, validGroups);
+    // Render both sub-tables
+    let html = '<div class="split-tables">';
+    html += renderM2SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
+    html += renderM2SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += '</div>';
+    m2Container.innerHTML = html;
 }
 
-function calculateM2Matches(numbers) {
+function calculateM2MatchesSubset(subset, allNumbers) {
     const checkResults = [];
     
-    // Check every row
-    for (let i = 0; i + 3 < numbers.length; i++) {
+    for (let i = 0; i + 3 < subset.length; i++) {
         // Hundreds: Row i, i+1, i+2
-        const h1 = parseInt(numbers[i][0]);
-        const h2 = parseInt(numbers[i + 1][0]);
-        const h3 = parseInt(numbers[i + 2][0]);
+        const h1 = parseInt(subset[i].value[0]);
+        const h2 = parseInt(subset[i + 1].value[0]);
+        const h3 = parseInt(subset[i + 2].value[0]);
         const hundredSum = h1 + h2 + h3;
         const hundredUnitDigit = hundredSum % 10;
         
         // Units: Row i+2, i+3
-        const u1 = parseInt(numbers[i + 2][2]);
-        const u2 = parseInt(numbers[i + 3][2]);
+        const u1 = parseInt(subset[i + 2].value[2]);
+        const u2 = parseInt(subset[i + 3].value[2]);
         const unitSum = u1 + u2;
         const unitUnitDigit = unitSum % 10;
         
         // Check if match
         const isMatch = hundredUnitDigit === unitUnitDigit;
         checkResults.push({
-            rowIndex: i,
+            subIndex: i,
+            actualRowIndex: subset[i].actualIndex,
             isMatch: isMatch,
             hundredSum: hundredSum,
             hundredUnitDigit: hundredUnitDigit,
@@ -220,10 +347,9 @@ function calculateM2Matches(numbers) {
     return checkResults;
 }
 
-function createM2DigitColorMap(numbers, checkResults, validGroups) {
+function createM2DigitColorMap(checkResults, validGroups, numbers) {
     const digitColorMap = new Map();
     
-    // Flatten all valid group check indices
     const allValidCheckIndices = new Set();
     validGroups.forEach(group => {
         group.forEach(checkIndex => {
@@ -231,12 +357,10 @@ function createM2DigitColorMap(numbers, checkResults, validGroups) {
         });
     });
     
-    // For each valid check, assign it a unique color
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
-        // Each check gets its own color based on checkIndex
         const colorClass = colorClasses[checkIndex % colorClasses.length];
         
         // Color the hundreds digits: Row i, i+1, i+2 (hundred digit = digit 0)
@@ -260,10 +384,9 @@ function createM2DigitColorMap(numbers, checkResults, validGroups) {
     return digitColorMap;
 }
 
-function createM2ConnectorBars(numbers, checkResults, validGroups) {
+function createM2ConnectorBars(checkResults, validGroups, numbers) {
     const connectorMap = new Map();
     
-    // Flatten all valid group check indices
     const allValidCheckIndices = new Set();
     validGroups.forEach(group => {
         group.forEach(checkIndex => {
@@ -271,19 +394,16 @@ function createM2ConnectorBars(numbers, checkResults, validGroups) {
         });
     });
     
-    // For each valid check, create its connector bar
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
-        // Each check gets its own bar color
         const barClass = barClasses[checkIndex % barClasses.length];
         
         // Connector spans from Row i to Row i+3
         const startRow = rowIndex;
         const endRow = Math.min(rowIndex + 3, numbers.length - 1);
         
-        // Store connector info for each row in the range
         for (let r = startRow; r <= endRow; r++) {
             if (!connectorMap.has(r)) {
                 connectorMap.set(r, []);
@@ -295,8 +415,15 @@ function createM2ConnectorBars(numbers, checkResults, validGroups) {
     return connectorMap;
 }
 
-function renderM2Grid(numbers, digitColorMap, connectorMap, validGroups) {
-    let html = '<div class="results-grid">';
+function renderM2SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
+    if (subset.length === 0) return '';
+    
+    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
+    const labelText = labelMap[label] || label;
+    
+    let html = `<div class="sub-table ${label}">`;
+    html += `<h3 class="sub-table-title">${labelText}</h3>`;
+    html += '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
         const num = numbers[i];
@@ -306,7 +433,6 @@ function renderM2Grid(numbers, digitColorMap, connectorMap, validGroups) {
             <div class="row-number">${i + 1}</div>
             <div class="digits-container">`;
         
-        // Add digits
         for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
             const digit = num[digitIndex];
             const colorKey = `${i}-${digitIndex}`;
@@ -316,7 +442,6 @@ function renderM2Grid(numbers, digitColorMap, connectorMap, validGroups) {
             html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
         }
         
-        // Add connector bars
         connectors.forEach((connector, idx) => {
             const { startRow, endRow, barClass } = connector;
             const rowsSpanned = endRow - startRow + 1;
@@ -330,142 +455,61 @@ function renderM2Grid(numbers, digitColorMap, connectorMap, validGroups) {
     }
     
     html += '</div>';
-    m2Container.innerHTML = html;
-    
-    // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    m2Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
-}
-
-// ========== SHARED UTILITIES ==========
-function identifyConsecutiveGroups(checkResults) {
-    const groups = [];
-    let currentGroup = [];
+    html += `<div class="status-message status-info">${summaryText}</div>`;
+    html += '</div>';
     
-    for (let i = 0; i < checkResults.length; i++) {
-        if (checkResults[i].isMatch) {
-            currentGroup.push(i);
-        } else {
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-                currentGroup = [];
-            }
-        }
-    }
-    
-    if (currentGroup.length > 0) {
-        groups.push(currentGroup);
-    }
-    
-    return groups;
-}
-
-function createDigitColorMap(numbers, checkResults, validGroups) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        digitColorMap.set(`${rowIndex}-2`, colorClass);
-        digitColorMap.set(`${rowIndex}-0`, colorClass);
-        
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
-            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
-        }
-        
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-        }
-    });
-    
-    return digitColorMap;
-}
-
-function createConnectorBars(numbers, checkResults, validGroups) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
-        }
-    });
-    
-    return connectorMap;
+    return html;
 }
 
 // ========== M3 LOGIC ==========
 function analyzeM3(numbers) {
-    // Calculate M3 matches: every 3 rows starting from Row 1
-    const checkResults = calculateM3Matches(numbers);
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     
-    // Identify consecutive groups
-    const groups = identifyConsecutiveGroups(checkResults);
+    // Calculate odd sub-table
+    const oddCheckResults = calculateM3MatchesSubset(oddNumbers, numbers);
+    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
+    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
+    const oddDigitColorMap = createM3DigitColorMap(oddCheckResults, oddValidGroups, numbers);
+    const oddConnectorMap = createM3ConnectorBars(oddCheckResults, oddValidGroups, numbers);
     
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
+    // Calculate even sub-table
+    const evenCheckResults = calculateM3MatchesSubset(evenNumbers, numbers);
+    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
+    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
+    const evenDigitColorMap = createM3DigitColorMap(evenCheckResults, evenValidGroups, numbers);
+    const evenConnectorMap = createM3ConnectorBars(evenCheckResults, evenValidGroups, numbers);
     
-    // Create color mapping
-    const digitColorMap = createM3DigitColorMap(numbers, checkResults, validGroups);
-    
-    // Create connector bars
-    const connectorMap = createM3ConnectorBars(numbers, checkResults, validGroups);
-    
-    // Render grid
-    renderM3Grid(numbers, digitColorMap, connectorMap, validGroups);
+    // Render both sub-tables
+    let html = '<div class="split-tables">';
+    html += renderM3SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
+    html += renderM3SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += '</div>';
+    m3Container.innerHTML = html;
 }
 
-function calculateM3Matches(numbers) {
+function calculateM3MatchesSubset(subset, allNumbers) {
     const checkResults = [];
     
-    // Check every row
-    // Formula: Row N+1 (ten + unit) sum unit digit = (Row N hundred + Row N+1 hundred + Row N+2 ten) sum unit digit
-    for (let i = 0; i + 2 < numbers.length; i++) {
+    for (let i = 0; i + 2 < subset.length; i++) {
         // Left side: Row N+1 ten digit + unit digit
-        const tenDigit = parseInt(numbers[i + 1][1]);
-        const unitDigit = parseInt(numbers[i + 1][2]);
+        const tenDigit = parseInt(subset[i + 1].value[1]);
+        const unitDigit = parseInt(subset[i + 1].value[2]);
         const leftSum = tenDigit + unitDigit;
         const leftUnitDigit = leftSum % 10;
         
         // Right side: Row N hundred + Row N+1 hundred + Row N+2 ten digit
-        const h1 = parseInt(numbers[i][0]);
-        const h2 = parseInt(numbers[i + 1][0]);
-        const t3 = parseInt(numbers[i + 2][1]);
+        const h1 = parseInt(subset[i].value[0]);
+        const h2 = parseInt(subset[i + 1].value[0]);
+        const t3 = parseInt(subset[i + 2].value[1]);
         const rightSum = h1 + h2 + t3;
         const rightUnitDigit = rightSum % 10;
         
         // Check if match
         const isMatch = leftUnitDigit === rightUnitDigit;
         checkResults.push({
-            rowIndex: i,
+            subIndex: i,
+            actualRowIndex: subset[i].actualIndex,
             isMatch: isMatch,
             leftSum: leftSum,
             leftUnitDigit: leftUnitDigit,
@@ -477,7 +521,7 @@ function calculateM3Matches(numbers) {
     return checkResults;
 }
 
-function createM3DigitColorMap(numbers, checkResults, validGroups) {
+function createM3DigitColorMap(checkResults, validGroups, numbers) {
     const digitColorMap = new Map();
     
     const allValidCheckIndices = new Set();
@@ -489,11 +533,11 @@ function createM3DigitColorMap(numbers, checkResults, validGroups) {
     
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
         const colorClass = colorClasses[checkIndex % colorClasses.length];
         
-        // Left side: Row N+1 ten and unit digits (circled in image)
+        // Left side: Row N+1 ten and unit digits
         if (rowIndex + 1 < numbers.length) {
             digitColorMap.set(`${rowIndex + 1}-1`, colorClass); // ten digit
             digitColorMap.set(`${rowIndex + 1}-2`, colorClass); // unit digit
@@ -512,7 +556,7 @@ function createM3DigitColorMap(numbers, checkResults, validGroups) {
     return digitColorMap;
 }
 
-function createM3ConnectorBars(numbers, checkResults, validGroups) {
+function createM3ConnectorBars(checkResults, validGroups, numbers) {
     const connectorMap = new Map();
     
     const allValidCheckIndices = new Set();
@@ -524,7 +568,7 @@ function createM3ConnectorBars(numbers, checkResults, validGroups) {
     
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
         const barClass = barClasses[checkIndex % barClasses.length];
         
@@ -543,8 +587,15 @@ function createM3ConnectorBars(numbers, checkResults, validGroups) {
     return connectorMap;
 }
 
-function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
-    let html = '<div class="results-grid">';
+function renderM3SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
+    if (subset.length === 0) return '';
+    
+    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
+    const labelText = labelMap[label] || label;
+    
+    let html = `<div class="sub-table ${label}">`;
+    html += `<h3 class="sub-table-title">${labelText}</h3>`;
+    html += '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
         const num = numbers[i];
@@ -554,7 +605,6 @@ function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
             <div class="row-number">${i + 1}</div>
             <div class="digits-container">`;
         
-        // Add digits
         for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
             const digit = num[digitIndex];
             const colorKey = `${i}-${digitIndex}`;
@@ -564,7 +614,6 @@ function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
             html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
         }
         
-        // Add connector bars
         connectors.forEach((connector, idx) => {
             const { startRow, endRow, barClass } = connector;
             const rowsSpanned = endRow - startRow + 1;
@@ -578,53 +627,57 @@ function renderM3Grid(numbers, digitColorMap, connectorMap, validGroups) {
     }
     
     html += '</div>';
-    m3Container.innerHTML = html;
-    
-    // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    m3Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+    html += `<div class="status-message status-info">${summaryText}</div>`;
+    html += '</div>';
+    
+    return html;
 }
 
 // ========== M4 LOGIC ==========
 function analyzeM4(numbers) {
-    // Calculate M4 matches: every 5 rows starting from Row 1
-    const checkResults = calculateM4Matches(numbers);
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     
-    // Identify consecutive groups
-    const groups = identifyConsecutiveGroups(checkResults);
+    // Calculate odd sub-table
+    const oddCheckResults = calculateM4MatchesSubset(oddNumbers, numbers);
+    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
+    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
+    const oddDigitColorMap = createM4DigitColorMap(oddCheckResults, oddValidGroups, numbers);
+    const oddConnectorMap = createM4ConnectorBars(oddCheckResults, oddValidGroups, numbers);
     
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
+    // Calculate even sub-table
+    const evenCheckResults = calculateM4MatchesSubset(evenNumbers, numbers);
+    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
+    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
+    const evenDigitColorMap = createM4DigitColorMap(evenCheckResults, evenValidGroups, numbers);
+    const evenConnectorMap = createM4ConnectorBars(evenCheckResults, evenValidGroups, numbers);
     
-    // Create color mapping
-    const digitColorMap = createM4DigitColorMap(numbers, checkResults, validGroups);
-    
-    // Create connector bars
-    const connectorMap = createM4ConnectorBars(numbers, checkResults, validGroups);
-    
-    // Render grid
-    renderM4Grid(numbers, digitColorMap, connectorMap, validGroups);
+    // Render both sub-tables
+    let html = '<div class="split-tables">';
+    html += renderM4SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
+    html += renderM4SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += '</div>';
+    m4Container.innerHTML = html;
 }
 
-function calculateM4Matches(numbers) {
+function calculateM4MatchesSubset(subset, allNumbers) {
     const checkResults = [];
     
-    // Check every row
-    // Formula: Row N ten + Row N+1 ten + Row N+2 ten -> sum unit digit = Row N+4 ten digit
-    for (let i = 0; i + 4 < numbers.length; i++) {
-        const t1 = parseInt(numbers[i][1]);     // Row N ten digit
-        const t2 = parseInt(numbers[i + 1][1]); // Row N+1 ten digit
-        const t3 = parseInt(numbers[i + 2][1]); // Row N+2 ten digit
+    for (let i = 0; i + 4 < subset.length; i++) {
+        const t1 = parseInt(subset[i].value[1]);     // Row N ten digit
+        const t2 = parseInt(subset[i + 1].value[1]); // Row N+1 ten digit
+        const t3 = parseInt(subset[i + 2].value[1]); // Row N+2 ten digit
         const sum = t1 + t2 + t3;
         const sumUnitDigit = sum % 10;
         
         // Target: Row N+4 ten digit
-        const targetTenDigit = parseInt(numbers[i + 4][1]);
+        const targetTenDigit = parseInt(subset[i + 4].value[1]);
         
         // Check if match
         const isMatch = sumUnitDigit === targetTenDigit;
         checkResults.push({
-            rowIndex: i,
+            subIndex: i,
+            actualRowIndex: subset[i].actualIndex,
             isMatch: isMatch,
             sum: sum,
             sumUnitDigit: sumUnitDigit,
@@ -635,7 +688,7 @@ function calculateM4Matches(numbers) {
     return checkResults;
 }
 
-function createM4DigitColorMap(numbers, checkResults, validGroups) {
+function createM4DigitColorMap(checkResults, validGroups, numbers) {
     const digitColorMap = new Map();
     
     const allValidCheckIndices = new Set();
@@ -647,7 +700,7 @@ function createM4DigitColorMap(numbers, checkResults, validGroups) {
     
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
         const colorClass = colorClasses[checkIndex % colorClasses.length];
         
@@ -669,7 +722,7 @@ function createM4DigitColorMap(numbers, checkResults, validGroups) {
     return digitColorMap;
 }
 
-function createM4ConnectorBars(numbers, checkResults, validGroups) {
+function createM4ConnectorBars(checkResults, validGroups, numbers) {
     const connectorMap = new Map();
     
     const allValidCheckIndices = new Set();
@@ -681,7 +734,7 @@ function createM4ConnectorBars(numbers, checkResults, validGroups) {
     
     allValidCheckIndices.forEach(checkIndex => {
         const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
+        const rowIndex = check.actualRowIndex;
         
         const barClass = barClasses[checkIndex % barClasses.length];
         
@@ -700,8 +753,15 @@ function createM4ConnectorBars(numbers, checkResults, validGroups) {
     return connectorMap;
 }
 
-function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
-    let html = '<div class="results-grid">';
+function renderM4SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
+    if (subset.length === 0) return '';
+    
+    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
+    const labelText = labelMap[label] || label;
+    
+    let html = `<div class="sub-table ${label}">`;
+    html += `<h3 class="sub-table-title">${labelText}</h3>`;
+    html += '<div class="results-grid">';
     
     for (let i = 0; i < numbers.length; i++) {
         const num = numbers[i];
@@ -711,7 +771,6 @@ function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
             <div class="row-number">${i + 1}</div>
             <div class="digits-container">`;
         
-        // Add digits
         for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
             const digit = num[digitIndex];
             const colorKey = `${i}-${digitIndex}`;
@@ -721,7 +780,6 @@ function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
             html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
         }
         
-        // Add connector bars
         connectors.forEach((connector, idx) => {
             const { startRow, endRow, barClass } = connector;
             const rowsSpanned = endRow - startRow + 1;
@@ -735,11 +793,11 @@ function renderM4Grid(numbers, digitColorMap, connectorMap, validGroups) {
     }
     
     html += '</div>';
-    m4Container.innerHTML = html;
-    
-    // Show summary
     const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    m4Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+    html += `<div class="status-message status-info">${summaryText}</div>`;
+    html += '</div>';
+    
+    return html;
 }
 
 // ========== M5 LOGIC ==========
