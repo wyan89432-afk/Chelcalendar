@@ -456,3 +456,14 @@ footer {
         min-width: 100%;
     }
 }
+
+/* Three column layout for M5 */
+.three-columns .sub-table {
+    min-width: 250px;
+}
+
+.sub-table.group3 .sub-table-title {
+    border-left-color: #27ae60;
+    background: #eafaf1;
+    color: #1e8449;
+}

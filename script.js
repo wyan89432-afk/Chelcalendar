@@ -19,941 +19,339 @@ analyzeBtn.addEventListener('click', analyze);
 // Main analysis function
 function analyze() {
     const input = numberInput.value.trim();
-    
     if (!input) {
         m1Container.innerHTML = '<div class="status-message status-warning">အကျေးဇူးပြု၍ ဂဏန်းများထည့်သွင်းပါ။ (Please enter numbers)</div>';
-        m2Container.innerHTML = '';
         return;
     }
     
-    // Parse input
-    const numbers = input.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-    
-    // Validate numbers
+    const numbers = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const validNumbers = [];
     for (let num of numbers) {
         if (/^\d{1,3}$/.test(num)) {
             validNumbers.push(num.padStart(3, '0'));
         } else if (num.length > 0) {
-            m1Container.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${num}" သည် ဂဏန်းမဟုတ်ပါ။ (Invalid: "${num}" is not a number)</div>`;
-            m2Container.innerHTML = '';
+            m1Container.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${num}" သည် ဂဏန်းမဟုတ်ပါ။</div>`;
             return;
         }
     }
     
     if (validNumbers.length < 2) {
-        m1Container.innerHTML = '<div class="status-message status-warning">အနည်းဆုံး 2 ခုသည့် ဂဏန်းများ လိုအပ်ပါသည်။ (At least 2 numbers are required)</div>';
-        m2Container.innerHTML = '';
+        m1Container.innerHTML = '<div class="status-message status-warning">အနည်းဆုံး 2 ခုသည့် ဂဏန်းများ လိုအပ်ပါသည်။</div>';
         return;
     }
     
     currentNumbers = validNumbers;
-    
-    // Calculate M1 (split into odd/even)
     analyzeM1(validNumbers);
-    
-    // Calculate M2 (split into odd/even)
     analyzeM2(validNumbers);
-    
-    // Calculate M3 (split into odd/even)
     analyzeM3(validNumbers);
-    
-    // Calculate M4 (split into odd/even)
     analyzeM4(validNumbers);
-    
-    // Calculate M5 (no split needed - user didn't mention M5)
     analyzeM5(validNumbers);
 }
 
-// ========== SHARED UTILITY: Get odd/even indexed numbers ==========
+// Utility: Odd/Even split
 function getOddEvenNumbers(numbers) {
-    const oddNumbers = [];   // indices 0, 2, 4, 6... → Rows 1, 3, 5, 7...
-    const evenNumbers = [];  // indices 1, 3, 5, 7... → Rows 2, 4, 6, 8...
-    
+    const oddNumbers = [];   // Rows 1, 3, 5... (index 0, 2, 4...)
+    const evenNumbers = [];  // Rows 2, 4, 6... (index 1, 3, 5...)
     for (let i = 0; i < numbers.length; i++) {
-        if (i % 2 === 0) {
-            oddNumbers.push({ actualIndex: i, value: numbers[i] });
-        } else {
-            evenNumbers.push({ actualIndex: i, value: numbers[i] });
-        }
+        if (i % 2 === 0) oddNumbers.push({ actualIndex: i, value: numbers[i] });
+        else evenNumbers.push({ actualIndex: i, value: numbers[i] });
     }
-    
     return { oddNumbers, evenNumbers };
 }
 
-// ========== SHARED UTILITY: Identify consecutive groups within a sub-table ==========
+// Utility: Groups
 function identifyConsecutiveGroups(checkResults) {
     const groups = [];
     let currentGroup = [];
-    
     for (let i = 0; i < checkResults.length; i++) {
-        if (checkResults[i].isMatch) {
-            currentGroup.push(i);
-        } else {
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-                currentGroup = [];
-            }
+        if (checkResults[i].isMatch) currentGroup.push(i);
+        else {
+            if (currentGroup.length > 0) { groups.push(currentGroup); currentGroup = []; }
         }
     }
-    
-    if (currentGroup.length > 0) {
-        groups.push(currentGroup);
-    }
-    
+    if (currentGroup.length > 0) groups.push(currentGroup);
     return groups;
 }
 
 // ========== M1 LOGIC ==========
 function analyzeM1(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM1MatchesSubset(oddNumbers);
+    const evenResults = calculateM1MatchesSubset(evenNumbers);
     
-    // Calculate odd sub-table
-    const oddCheckResults = calculateM1MatchesSubset(oddNumbers, numbers);
-    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
-    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
-    const oddDigitColorMap = createM1DigitColorMap(oddCheckResults, oddValidGroups, numbers);
-    const oddConnectorMap = createM1ConnectorBars(oddCheckResults, oddValidGroups, numbers);
-    
-    // Calculate even sub-table
-    const evenCheckResults = calculateM1MatchesSubset(evenNumbers, numbers);
-    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
-    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
-    const evenDigitColorMap = createM1DigitColorMap(evenCheckResults, evenValidGroups, numbers);
-    const evenConnectorMap = createM1ConnectorBars(evenCheckResults, evenValidGroups, numbers);
-    
-    // Render both sub-tables
     let html = '<div class="split-tables">';
-    
-    // Odd table
-    html += renderM1SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
-    
-    // Even table
-    html += renderM1SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
-    
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM1ColorMap, createM1Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM1ColorMap, createM1Bars);
     html += '</div>';
     m1Container.innerHTML = html;
 }
 
-function calculateM1MatchesSubset(subset, allNumbers) {
-    const checkResults = [];
-    
-    // subset is array of { actualIndex, value }
-    // We check consecutive entries in the subset
+function calculateM1MatchesSubset(subset) {
+    const results = [];
     for (let i = 0; i + 2 < subset.length; i++) {
-        const currentNum = subset[i].value;
-        const nextNum = subset[i + 1].value;
-        const nextNextNum = subset[i + 2].value;
-        
-        // Extract digits according to formula
-        const currentUnitDigit = parseInt(currentNum[2]); // Row N: unit digit
-        const nextTenDigit = parseInt(nextNum[1]); // Row (N+1): ten digit
-        const nextUnitDigit = parseInt(nextNum[2]); // Row (N+1): unit digit
-        const nextNextTenDigit = parseInt(nextNextNum[1]); // Row (N+2): TEN digit
-        
-        // Sum all individual digits
-        const sum = currentUnitDigit + nextTenDigit + nextUnitDigit + nextNextTenDigit;
-        const sumUnitDigit = sum % 10;
-        
-        // Get current row's hundred digit
-        const currentHundredDigit = parseInt(currentNum[0]);
-        
-        // Check if match
-        const isMatch = sumUnitDigit === currentHundredDigit;
-        checkResults.push({
+        const n = subset[i].value, n1 = subset[i+1].value, n2 = subset[i+2].value;
+        const sum = parseInt(n[2]) + parseInt(n1[1]) + parseInt(n1[2]) + parseInt(n2[0]);
+        results.push({
             subIndex: i,
             actualRowIndex: subset[i].actualIndex,
-            isMatch: isMatch,
-            sum: sum,
-            sumUnitDigit: sumUnitDigit,
-            expectedDigit: currentHundredDigit
+            isMatch: (sum % 10) === parseInt(n[0]),
+            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex]
         });
     }
-    
-    return checkResults;
+    return results;
 }
 
-function createM1DigitColorMap(checkResults, validGroups, numbers) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
+function createM1ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        map.set(`${r.indices[0]}-0`, color); map.set(`${r.indices[0]}-2`, color);
+        map.set(`${r.indices[1]}-1`, color); map.set(`${r.indices[1]}-2`, color);
+        map.set(`${r.indices[2]}-0`, color);
     });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        digitColorMap.set(`${rowIndex}-2`, colorClass);
-        digitColorMap.set(`${rowIndex}-0`, colorClass);
-        
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
-            digitColorMap.set(`${rowIndex + 1}-2`, colorClass);
-        }
-        
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-        }
-    });
-    
-    return digitColorMap;
+    return map;
 }
 
-function createM1ConnectorBars(checkResults, validGroups, numbers) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+function createM1Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[2];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
         }
     });
-    
-    return connectorMap;
-}
-
-function renderM1SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
-    if (subset.length === 0) return '';
-    
-    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
-    const labelText = labelMap[label] || label;
-    
-    let html = `<div class="sub-table ${label}">`;
-    html += `<h3 class="sub-table-title">${labelText}</h3>`;
-    html += '<div class="results-grid">';
-    
-    for (let i = 0; i < numbers.length; i++) {
-        const num = numbers[i];
-        const connectors = connectorMap.get(i) || [];
-        
-        html += `<div class="row-item">
-            <div class="row-number">${i + 1}</div>
-            <div class="digits-container">`;
-        
-        // Add digits
-        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
-            const digit = num[digitIndex];
-            const colorKey = `${i}-${digitIndex}`;
-            const colorClass = digitColorMap.get(colorKey) || '';
-            const highlightClass = colorClass ? 'highlighted' : '';
-            
-            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
-        }
-        
-        // Add connector bars
-        connectors.forEach((connector, idx) => {
-            const { startRow, endRow, barClass } = connector;
-            const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65;
-            const barTop = (startRow - i) * 65;
-            
-            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
-    html += '</div>';
-    
-    // Show summary
-    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    html += `<div class="status-message status-info">${summaryText}</div>`;
-    html += '</div>';
-    
-    return html;
+    return map;
 }
 
 // ========== M2 LOGIC ==========
 function analyzeM2(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM2MatchesSubset(oddNumbers);
+    const evenResults = calculateM2MatchesSubset(evenNumbers);
     
-    // Calculate odd sub-table
-    const oddCheckResults = calculateM2MatchesSubset(oddNumbers, numbers);
-    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
-    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
-    const oddDigitColorMap = createM2DigitColorMap(oddCheckResults, oddValidGroups, numbers);
-    const oddConnectorMap = createM2ConnectorBars(oddCheckResults, oddValidGroups, numbers);
-    
-    // Calculate even sub-table
-    const evenCheckResults = calculateM2MatchesSubset(evenNumbers, numbers);
-    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
-    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
-    const evenDigitColorMap = createM2DigitColorMap(evenCheckResults, evenValidGroups, numbers);
-    const evenConnectorMap = createM2ConnectorBars(evenCheckResults, evenValidGroups, numbers);
-    
-    // Render both sub-tables
     let html = '<div class="split-tables">';
-    html += renderM2SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
-    html += renderM2SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM2ColorMap, createM2Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM2ColorMap, createM2Bars);
     html += '</div>';
     m2Container.innerHTML = html;
 }
 
-function calculateM2MatchesSubset(subset, allNumbers) {
-    const checkResults = [];
-    
+function calculateM2MatchesSubset(subset) {
+    const results = [];
     for (let i = 0; i + 3 < subset.length; i++) {
-        // Hundreds: Row i, i+1, i+2
-        const h1 = parseInt(subset[i].value[0]);
-        const h2 = parseInt(subset[i + 1].value[0]);
-        const h3 = parseInt(subset[i + 2].value[0]);
-        const hundredSum = h1 + h2 + h3;
-        const hundredUnitDigit = hundredSum % 10;
-        
-        // Units: Row i+2, i+3
-        const u1 = parseInt(subset[i + 2].value[2]);
-        const u2 = parseInt(subset[i + 3].value[2]);
-        const unitSum = u1 + u2;
-        const unitUnitDigit = unitSum % 10;
-        
-        // Check if match
-        const isMatch = hundredUnitDigit === unitUnitDigit;
-        checkResults.push({
+        const hSum = parseInt(subset[i].value[0]) + parseInt(subset[i+1].value[0]) + parseInt(subset[i+2].value[0]);
+        const uSum = parseInt(subset[i+2].value[2]) + parseInt(subset[i+3].value[2]);
+        results.push({
             subIndex: i,
             actualRowIndex: subset[i].actualIndex,
-            isMatch: isMatch,
-            hundredSum: hundredSum,
-            hundredUnitDigit: hundredUnitDigit,
-            unitSum: unitSum,
-            unitUnitDigit: unitUnitDigit
+            isMatch: (hSum % 10) === (uSum % 10),
+            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex, subset[i+3].actualIndex]
         });
     }
-    
-    return checkResults;
+    return results;
 }
 
-function createM2DigitColorMap(checkResults, validGroups, numbers) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
+function createM2ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        map.set(`${r.indices[0]}-0`, color); map.set(`${r.indices[1]}-0`, color);
+        map.set(`${r.indices[2]}-0`, color); map.set(`${r.indices[2]}-2`, color);
+        map.set(`${r.indices[3]}-2`, color);
     });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        // Color the hundreds digits: Row i, i+1, i+2 (hundred digit = digit 0)
-        digitColorMap.set(`${rowIndex}-0`, colorClass);
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-0`, colorClass);
-        }
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
-        }
-        
-        // Color the units digits: Row i+2, i+3 (unit digit = digit 2)
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-2`, colorClass);
-        }
-        if (rowIndex + 3 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 3}-2`, colorClass);
-        }
-    });
-    
-    return digitColorMap;
+    return map;
 }
 
-function createM2ConnectorBars(checkResults, validGroups, numbers) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        // Connector spans from Row i to Row i+3
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 3, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+function createM2Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[3];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
         }
     });
-    
-    return connectorMap;
-}
-
-function renderM2SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
-    if (subset.length === 0) return '';
-    
-    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
-    const labelText = labelMap[label] || label;
-    
-    let html = `<div class="sub-table ${label}">`;
-    html += `<h3 class="sub-table-title">${labelText}</h3>`;
-    html += '<div class="results-grid">';
-    
-    for (let i = 0; i < numbers.length; i++) {
-        const num = numbers[i];
-        const connectors = connectorMap.get(i) || [];
-        
-        html += `<div class="row-item">
-            <div class="row-number">${i + 1}</div>
-            <div class="digits-container">`;
-        
-        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
-            const digit = num[digitIndex];
-            const colorKey = `${i}-${digitIndex}`;
-            const colorClass = digitColorMap.get(colorKey) || '';
-            const highlightClass = colorClass ? 'highlighted' : '';
-            
-            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
-        }
-        
-        connectors.forEach((connector, idx) => {
-            const { startRow, endRow, barClass } = connector;
-            const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65;
-            const barTop = (startRow - i) * 65;
-            
-            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
-    html += '</div>';
-    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    html += `<div class="status-message status-info">${summaryText}</div>`;
-    html += '</div>';
-    
-    return html;
+    return map;
 }
 
 // ========== M3 LOGIC ==========
 function analyzeM3(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM3MatchesSubset(oddNumbers);
+    const evenResults = calculateM3MatchesSubset(evenNumbers);
     
-    // Calculate odd sub-table
-    const oddCheckResults = calculateM3MatchesSubset(oddNumbers, numbers);
-    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
-    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
-    const oddDigitColorMap = createM3DigitColorMap(oddCheckResults, oddValidGroups, numbers);
-    const oddConnectorMap = createM3ConnectorBars(oddCheckResults, oddValidGroups, numbers);
-    
-    // Calculate even sub-table
-    const evenCheckResults = calculateM3MatchesSubset(evenNumbers, numbers);
-    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
-    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
-    const evenDigitColorMap = createM3DigitColorMap(evenCheckResults, evenValidGroups, numbers);
-    const evenConnectorMap = createM3ConnectorBars(evenCheckResults, evenValidGroups, numbers);
-    
-    // Render both sub-tables
     let html = '<div class="split-tables">';
-    html += renderM3SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
-    html += renderM3SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM3ColorMap, createM3Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM3ColorMap, createM3Bars);
     html += '</div>';
     m3Container.innerHTML = html;
 }
 
-function calculateM3MatchesSubset(subset, allNumbers) {
-    const checkResults = [];
-    
+function calculateM3MatchesSubset(subset) {
+    const results = [];
     for (let i = 0; i + 2 < subset.length; i++) {
-        // Left side: Row N+1 ten digit + unit digit
-        const tenDigit = parseInt(subset[i + 1].value[1]);
-        const unitDigit = parseInt(subset[i + 1].value[2]);
-        const leftSum = tenDigit + unitDigit;
-        const leftUnitDigit = leftSum % 10;
-        
-        // Right side: Row N hundred + Row N+1 hundred + Row N+2 ten digit
-        const h1 = parseInt(subset[i].value[0]);
-        const h2 = parseInt(subset[i + 1].value[0]);
-        const t3 = parseInt(subset[i + 2].value[1]);
-        const rightSum = h1 + h2 + t3;
-        const rightUnitDigit = rightSum % 10;
-        
-        // Check if match
-        const isMatch = leftUnitDigit === rightUnitDigit;
-        checkResults.push({
+        const left = (parseInt(subset[i+1].value[1]) + parseInt(subset[i+1].value[2])) % 10;
+        const right = (parseInt(subset[i].value[0]) + parseInt(subset[i+1].value[0]) + parseInt(subset[i+2].value[1])) % 10;
+        results.push({
             subIndex: i,
             actualRowIndex: subset[i].actualIndex,
-            isMatch: isMatch,
-            leftSum: leftSum,
-            leftUnitDigit: leftUnitDigit,
-            rightSum: rightSum,
-            rightUnitDigit: rightUnitDigit
+            isMatch: left === right,
+            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex]
         });
     }
-    
-    return checkResults;
+    return results;
 }
 
-function createM3DigitColorMap(checkResults, validGroups, numbers) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
+function createM3ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        map.set(`${r.indices[0]}-0`, color);
+        map.set(`${r.indices[1]}-0`, color); map.set(`${r.indices[1]}-1`, color); map.set(`${r.indices[1]}-2`, color);
+        map.set(`${r.indices[2]}-1`, color);
     });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        // Left side: Row N+1 ten and unit digits
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-1`, colorClass); // ten digit
-            digitColorMap.set(`${rowIndex + 1}-2`, colorClass); // unit digit
-        }
-        
-        // Right side: Row N hundred, Row N+1 hundred, Row N+2 ten digit
-        digitColorMap.set(`${rowIndex}-0`, colorClass); // Row N hundred
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-0`, colorClass); // Row N+1 hundred
-        }
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass); // Row N+2 ten digit
-        }
-    });
-    
-    return digitColorMap;
+    return map;
 }
 
-function createM3ConnectorBars(checkResults, validGroups, numbers) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        // Connector spans from Row N to Row N+2
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+function createM3Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[2];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
         }
     });
-    
-    return connectorMap;
-}
-
-function renderM3SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
-    if (subset.length === 0) return '';
-    
-    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
-    const labelText = labelMap[label] || label;
-    
-    let html = `<div class="sub-table ${label}">`;
-    html += `<h3 class="sub-table-title">${labelText}</h3>`;
-    html += '<div class="results-grid">';
-    
-    for (let i = 0; i < numbers.length; i++) {
-        const num = numbers[i];
-        const connectors = connectorMap.get(i) || [];
-        
-        html += `<div class="row-item">
-            <div class="row-number">${i + 1}</div>
-            <div class="digits-container">`;
-        
-        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
-            const digit = num[digitIndex];
-            const colorKey = `${i}-${digitIndex}`;
-            const colorClass = digitColorMap.get(colorKey) || '';
-            const highlightClass = colorClass ? 'highlighted' : '';
-            
-            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
-        }
-        
-        connectors.forEach((connector, idx) => {
-            const { startRow, endRow, barClass } = connector;
-            const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65;
-            const barTop = (startRow - i) * 65;
-            
-            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
-    html += '</div>';
-    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    html += `<div class="status-message status-info">${summaryText}</div>`;
-    html += '</div>';
-    
-    return html;
+    return map;
 }
 
 // ========== M4 LOGIC ==========
 function analyzeM4(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM4MatchesSubset(oddNumbers);
+    const evenResults = calculateM4MatchesSubset(evenNumbers);
     
-    // Calculate odd sub-table
-    const oddCheckResults = calculateM4MatchesSubset(oddNumbers, numbers);
-    const oddGroups = identifyConsecutiveGroups(oddCheckResults);
-    const oddValidGroups = oddGroups.filter(group => group.length >= 2);
-    const oddDigitColorMap = createM4DigitColorMap(oddCheckResults, oddValidGroups, numbers);
-    const oddConnectorMap = createM4ConnectorBars(oddCheckResults, oddValidGroups, numbers);
-    
-    // Calculate even sub-table
-    const evenCheckResults = calculateM4MatchesSubset(evenNumbers, numbers);
-    const evenGroups = identifyConsecutiveGroups(evenCheckResults);
-    const evenValidGroups = evenGroups.filter(group => group.length >= 2);
-    const evenDigitColorMap = createM4DigitColorMap(evenCheckResults, evenValidGroups, numbers);
-    const evenConnectorMap = createM4ConnectorBars(evenCheckResults, evenValidGroups, numbers);
-    
-    // Render both sub-tables
     let html = '<div class="split-tables">';
-    html += renderM4SubGrid(numbers, oddDigitColorMap, oddConnectorMap, oddValidGroups, oddNumbers, 'odd');
-    html += renderM4SubGrid(numbers, evenDigitColorMap, evenConnectorMap, evenValidGroups, evenNumbers, 'even');
+    html += renderSubTable(numbers, oddResults, 'odd', 'Odd Rows (စုံ row များ)', createM4ColorMap, createM4Bars);
+    html += renderSubTable(numbers, evenResults, 'even', 'Even Rows (မ စုံ row များ)', createM4ColorMap, createM4Bars);
     html += '</div>';
     m4Container.innerHTML = html;
 }
 
-function calculateM4MatchesSubset(subset, allNumbers) {
-    const checkResults = [];
-    
+function calculateM4MatchesSubset(subset) {
+    const results = [];
     for (let i = 0; i + 4 < subset.length; i++) {
-        const t1 = parseInt(subset[i].value[1]);     // Row N ten digit
-        const t2 = parseInt(subset[i + 1].value[1]); // Row N+1 ten digit
-        const t3 = parseInt(subset[i + 2].value[1]); // Row N+2 ten digit
-        const sum = t1 + t2 + t3;
-        const sumUnitDigit = sum % 10;
-        
-        // Target: Row N+4 ten digit
-        const targetTenDigit = parseInt(subset[i + 4].value[1]);
-        
-        // Check if match
-        const isMatch = sumUnitDigit === targetTenDigit;
-        checkResults.push({
+        const sum = (parseInt(subset[i].value[1]) + parseInt(subset[i+1].value[1]) + parseInt(subset[i+2].value[1])) % 10;
+        results.push({
             subIndex: i,
             actualRowIndex: subset[i].actualIndex,
-            isMatch: isMatch,
-            sum: sum,
-            sumUnitDigit: sumUnitDigit,
-            targetTenDigit: targetTenDigit
+            isMatch: sum === parseInt(subset[i+4].value[1]),
+            indices: [subset[i].actualIndex, subset[i+1].actualIndex, subset[i+2].actualIndex, subset[i+4].actualIndex]
         });
     }
-    
-    return checkResults;
+    return results;
 }
 
-function createM4DigitColorMap(checkResults, validGroups, numbers) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
+function createM4ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        map.set(`${r.indices[0]}-1`, color); map.set(`${r.indices[1]}-1`, color);
+        map.set(`${r.indices[2]}-1`, color); map.set(`${r.indices[3]}-1`, color);
     });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        // Color the ten digits of Row N, N+1, N+2 (digit index 1)
-        digitColorMap.set(`${rowIndex}-1`, colorClass);
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-1`, colorClass);
-        }
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-        }
-        
-        // Color the ten digit of Row N+4 (the target)
-        if (rowIndex + 4 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 4}-1`, colorClass);
-        }
-    });
-    
-    return digitColorMap;
+    return map;
 }
 
-function createM4ConnectorBars(checkResults, validGroups, numbers) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.actualRowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        // Connector spans from Row N to Row N+4
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 4, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
+function createM4Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[3];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
         }
     });
-    
-    return connectorMap;
-}
-
-function renderM4SubGrid(numbers, digitColorMap, connectorMap, validGroups, subset, label) {
-    if (subset.length === 0) return '';
-    
-    const labelMap = { odd: 'Odd Rows (စုံ row များ)', even: 'Even Rows (မ စုံ row များ)' };
-    const labelText = labelMap[label] || label;
-    
-    let html = `<div class="sub-table ${label}">`;
-    html += `<h3 class="sub-table-title">${labelText}</h3>`;
-    html += '<div class="results-grid">';
-    
-    for (let i = 0; i < numbers.length; i++) {
-        const num = numbers[i];
-        const connectors = connectorMap.get(i) || [];
-        
-        html += `<div class="row-item">
-            <div class="row-number">${i + 1}</div>
-            <div class="digits-container">`;
-        
-        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
-            const digit = num[digitIndex];
-            const colorKey = `${i}-${digitIndex}`;
-            const colorClass = digitColorMap.get(colorKey) || '';
-            const highlightClass = colorClass ? 'highlighted' : '';
-            
-            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
-        }
-        
-        connectors.forEach((connector, idx) => {
-            const { startRow, endRow, barClass } = connector;
-            const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65;
-            const barTop = (startRow - i) * 65;
-            
-            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
-    html += '</div>';
-    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    html += `<div class="status-message status-info">${summaryText}</div>`;
-    html += '</div>';
-    
-    return html;
+    return map;
 }
 
 // ========== M5 LOGIC ==========
 function analyzeM5(numbers) {
-    // Calculate M5 matches: every 3 rows starting from Row 1
-    const checkResults = calculateM5Matches(numbers);
+    // M5: Every 3 rows starting from Row 1, 2, 3
+    const results1 = calculateM5Step3(numbers, 0);
+    const results2 = calculateM5Step3(numbers, 1);
+    const results3 = calculateM5Step3(numbers, 2);
     
-    // Identify consecutive groups
-    const groups = identifyConsecutiveGroups(checkResults);
-    
-    // Filter groups (only keep groups with 2+ consecutive matches)
-    const validGroups = groups.filter(group => group.length >= 2);
-    
-    // Create color mapping
-    const digitColorMap = createM5DigitColorMap(numbers, checkResults, validGroups);
-    
-    // Create connector bars
-    const connectorMap = createM5ConnectorBars(numbers, checkResults, validGroups);
-    
-    // Render grid
-    renderM5Grid(numbers, digitColorMap, connectorMap, validGroups);
-}
-
-function calculateM5Matches(numbers) {
-    const checkResults = [];
-    
-    // Check every row
-    // Formula: Row N ten digit = (Row N+1 hundred + Row N+2 hundred + Row N+2 ten) sum unit digit
-    for (let i = 0; i + 2 < numbers.length; i++) {
-        // Left side: Row N ten digit
-        const targetTenDigit = parseInt(numbers[i][1]);
-        
-        // Right side: Row N+1 hundred + Row N+2 hundred + Row N+2 ten
-        const h1 = parseInt(numbers[i + 1][0]); // Row N+1 hundred
-        const h2 = parseInt(numbers[i + 2][0]); // Row N+2 hundred
-        const t2 = parseInt(numbers[i + 2][1]); // Row N+2 ten
-        const rightSum = h1 + h2 + t2;
-        const rightUnitDigit = rightSum % 10;
-        
-        // Check if match
-        const isMatch = targetTenDigit === rightUnitDigit;
-        checkResults.push({
-            rowIndex: i,
-            isMatch: isMatch,
-            targetTenDigit: targetTenDigit,
-            rightSum: rightSum,
-            rightUnitDigit: rightUnitDigit
-        });
-    }
-    
-    return checkResults;
-}
-
-function createM5DigitColorMap(numbers, checkResults, validGroups) {
-    const digitColorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        const colorClass = colorClasses[checkIndex % colorClasses.length];
-        
-        // Color Row N ten digit (the target - circled in pink)
-        digitColorMap.set(`${rowIndex}-1`, colorClass);
-        
-        // Color Row N+1 hundred digit
-        if (rowIndex + 1 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 1}-0`, colorClass);
-        }
-        
-        // Color Row N+2 hundred and ten digits
-        if (rowIndex + 2 < numbers.length) {
-            digitColorMap.set(`${rowIndex + 2}-0`, colorClass);
-            digitColorMap.set(`${rowIndex + 2}-1`, colorClass);
-        }
-    });
-    
-    return digitColorMap;
-}
-
-function createM5ConnectorBars(numbers, checkResults, validGroups) {
-    const connectorMap = new Map();
-    
-    const allValidCheckIndices = new Set();
-    validGroups.forEach(group => {
-        group.forEach(checkIndex => {
-            allValidCheckIndices.add(checkIndex);
-        });
-    });
-    
-    allValidCheckIndices.forEach(checkIndex => {
-        const check = checkResults[checkIndex];
-        const rowIndex = check.rowIndex;
-        
-        const barClass = barClasses[checkIndex % barClasses.length];
-        
-        // Connector spans from Row N to Row N+2
-        const startRow = rowIndex;
-        const endRow = Math.min(rowIndex + 2, numbers.length - 1);
-        
-        for (let r = startRow; r <= endRow; r++) {
-            if (!connectorMap.has(r)) {
-                connectorMap.set(r, []);
-            }
-            connectorMap.get(r).push({ startRow, endRow, barClass, checkIndex });
-        }
-    });
-    
-    return connectorMap;
-}
-
-function renderM5Grid(numbers, digitColorMap, connectorMap, validGroups) {
-    let html = '<div class="results-grid">';
-    
-    for (let i = 0; i < numbers.length; i++) {
-        const num = numbers[i];
-        const connectors = connectorMap.get(i) || [];
-        
-        html += `<div class="row-item">
-            <div class="row-number">${i + 1}</div>
-            <div class="digits-container">`;
-        
-        // Add digits
-        for (let digitIndex = 0; digitIndex < 3; digitIndex++) {
-            const digit = num[digitIndex];
-            const colorKey = `${i}-${digitIndex}`;
-            const colorClass = digitColorMap.get(colorKey) || '';
-            const highlightClass = colorClass ? 'highlighted' : '';
-            
-            html += `<div class="digit-box ${colorClass} ${highlightClass}">${digit}</div>`;
-        }
-        
-        // Add connector bars
-        connectors.forEach((connector, idx) => {
-            const { startRow, endRow, barClass } = connector;
-            const rowsSpanned = endRow - startRow + 1;
-            const barHeight = rowsSpanned * 65;
-            const barTop = (startRow - i) * 65;
-            
-            html += `<div class="connector-bar ${barClass}" style="height: ${barHeight}px; top: ${barTop}px;"></div>`;
-        });
-        
-        html += `</div></div>`;
-    }
-    
+    let html = '<div class="split-tables three-columns">';
+    html += renderSubTable(numbers, results1, 'odd', 'Group 1 (Row 1, 4, 7...)', createM5ColorMap, createM5Bars);
+    html += renderSubTable(numbers, results2, 'even', 'Group 2 (Row 2, 5, 8...)', createM5ColorMap, createM5Bars);
+    html += renderSubTable(numbers, results3, 'group3', 'Group 3 (Row 3, 6, 9...)', createM5ColorMap, createM5Bars);
     html += '</div>';
     m5Container.innerHTML = html;
+}
+
+function calculateM5Step3(numbers, startIdx) {
+    const results = [];
+    for (let i = startIdx; i + 2 < numbers.length; i += 3) {
+        const sum = (parseInt(numbers[i+1][0]) + parseInt(numbers[i+2][0]) + parseInt(numbers[i+2][1])) % 10;
+        results.push({
+            actualRowIndex: i,
+            isMatch: sum === parseInt(numbers[i][1]),
+            indices: [i, i+1, i+2]
+        });
+    }
+    return results;
+}
+
+function createM5ColorMap(results, numbers, colorClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const color = colorClasses[idx % colorClasses.length];
+        map.set(`${r.indices[0]}-1`, color);
+        map.set(`${r.indices[1]}-0`, color);
+        map.set(`${r.indices[2]}-0`, color); map.set(`${r.indices[2]}-1`, color);
+    });
+    return map;
+}
+
+function createM5Bars(results, numbers, barClasses) {
+    const map = new Map();
+    results.filter(r => r.isMatch).forEach((r, idx) => {
+        const bar = barClasses[idx % barClasses.length];
+        const start = r.indices[0], end = r.indices[2];
+        for (let i = start; i <= end; i++) {
+            if (!map.has(i)) map.set(i, []);
+            map.get(i).push({ startRow: start, endRow: end, barClass: bar });
+        }
+    });
+    return map;
+}
+
+// ========== RENDER ENGINE ==========
+function renderSubTable(numbers, results, cssClass, title, colorFn, barFn) {
+    const colorMap = colorFn(results, numbers, colorClasses);
+    const barMap = barFn(results, numbers, barClasses);
+    const matches = results.filter(r => r.isMatch);
     
-    // Show summary
-    const summaryText = `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matching groups: ${validGroups.length})`;
-    m5Container.innerHTML += `<div class="status-message status-info">${summaryText}</div>`;
+    let html = `<div class="sub-table ${cssClass}"><h3 class="sub-table-title">${title}</h3><div class="results-grid">`;
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i], bars = barMap.get(i) || [];
+        html += `<div class="row-item"><div class="row-number">${i+1}</div><div class="digits-container">`;
+        for (let d = 0; d < 3; d++) {
+            const color = colorMap.get(`${i}-${d}`) || '';
+            html += `<div class="digit-box ${color} ${color ? 'highlighted' : ''}">${num[d]}</div>`;
+        }
+        bars.forEach(b => {
+            const height = (b.endRow - b.startRow + 1) * 65;
+            const top = (b.startRow - i) * 65;
+            html += `<div class="connector-bar ${b.barClass}" style="height: ${height}px; top: ${top}px;"></div>`;
+        });
+        html += `</div></div>`;
+    }
+    html += `</div><div class="status-message status-info">ကိုက်ညီမှုများ: ${matches.length}</div></div>`;
+    return html;
 }
