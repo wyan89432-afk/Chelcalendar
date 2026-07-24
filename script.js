@@ -417,11 +417,13 @@ function renderSubTableM6(numbers, results, cssClass, title) {
     matches.forEach((r, idx) => {
         const color = colorClasses[idx % colorClasses.length];
         const bar = barClasses[idx % barClasses.length];
-        // Highlight Row N: hundred (digit 0) and unit (digit 2)
-        // Highlight Row N+1: hundred (digit 0)
+        // Highlight Row N: hundred (digit 0) and unit (digit 2) — source digits
         colorMap.set(`${r.indices[0]}-0`, color);
         colorMap.set(`${r.indices[0]}-2`, color);
+        // Highlight Row N+1: ALL 3 digits — matched target row (like M1 highlights)
         colorMap.set(`${r.indices[1]}-0`, color);
+        colorMap.set(`${r.indices[1]}-1`, color);
+        colorMap.set(`${r.indices[1]}-2`, color);
         // Arrow: Row n unit (digit 2) → Row n+1 hundred (digit 0)
         const nIdx = r.indices[0];
         const n1Idx = r.indices[1];
