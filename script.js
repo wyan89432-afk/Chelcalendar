@@ -492,13 +492,13 @@ function renderSubTableM6(numbers, results, cssClass, title) {
 
 // ========== M7 LOGIC ==========
 // Formula: A = Unit(Row n) + Tens(Row n+1)
-//          B = Unit(Row n+1) + Unit(Row n+2) + Hundreds(Row n+2)
-// If A == B → match
+//          B = Unit(Row n+1) + Unit(Row n+2) + Tens(Row n+2)
+// If A%10 == B%10 → match
 // Step of 3: Group 1 starts Row 1, Group 2 starts Row 4, etc.
-// Odd scan: Row 1,3,5,7,9... check Row n, n+1, n+2 (actual)
-// Even scan: Row 2,4,6,8... check Row n, n+1, n+2 (actual)
-// Highlight: Source = Row n unit + Row n+1 ten (straight arrow)
-//            Target = Row n+1 unit + Row n+2 unit + Row n+2 hundred
+// Odd scan: Row 1,3,5,7... check Row n, n+1, n+2 (actual consecutive)
+// Even scan: Row 2,4,6,8... check Row n, n+1, n+2 (actual consecutive)
+// Highlight: Source = Row n unit (blue) + Row n+1 ten (blue) with straight arrow
+//            Target = Row n+1 unit + Row n+2 unit + Row n+2 ten (pink)
 function analyzeM7(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     const oddResults = calculateM7MatchesSubset(oddNumbers, numbers);
@@ -520,13 +520,13 @@ function calculateM7MatchesSubset(subset, allNumbers) {
         
         // A = Unit(Row n) + Tens(Row n+1)
         const a = parseInt(allNumbers[nIdx][2]) + parseInt(allNumbers[nIdx+1][1]);
-        // B = Unit(Row n+1) + Unit(Row n+2) + Hundreds(Row n+2)
-        const b = parseInt(allNumbers[nIdx+1][2]) + parseInt(allNumbers[nIdx+2][2]) + parseInt(allNumbers[nIdx+2][0]);
+        // B = Unit(Row n+1) + Unit(Row n+2) + Tens(Row n+2)
+        const b = parseInt(allNumbers[nIdx+1][2]) + parseInt(allNumbers[nIdx+2][2]) + parseInt(allNumbers[nIdx+2][1]);
         
         results.push({
             subIndex: i,
             actualRowIndex: nIdx,
-            isMatch: a === b,
+            isMatch: (a % 10) === (b % 10),
             indices: [nIdx, nIdx+1, nIdx+2]
         });
     }
@@ -542,15 +542,15 @@ function renderSubTableM7(numbers, results, cssClass, title) {
     matches.forEach((r, idx) => {
         const color = colorClasses[idx % colorClasses.length];
         const bar = barClasses[idx % barClasses.length];
-        // Source: Row n unit (digit 2) + Row n+1 ten (digit 1)
+        // Source: Row n unit (digit 2) + Row n+1 ten (digit 1) - BLUE highlight
         colorMap.set(`${r.indices[0]}-2`, color); // Row n unit
         colorMap.set(`${r.indices[1]}-1`, color); // Row n+1 ten
-        // Target: Row n+1 unit (digit 2) + Row n+2 unit (digit 2) + Row n+2 hundred (digit 0)
+        // Target: Row n+1 unit (digit 2) + Row n+2 unit (digit 2) + Row n+2 ten (digit 1) - PINK highlight
         colorMap.set(`${r.indices[1]}-2`, color); // Row n+1 unit
-        colorMap.set(`${r.indices[2]}-0`, color); // Row n+2 hundred
+        colorMap.set(`${r.indices[2]}-1`, color); // Row n+2 ten
         colorMap.set(`${r.indices[2]}-2`, color); // Row n+2 unit
-        // Straight arrow from source to target
-        const start = r.indices[0], end = r.indices[2];
+        // Straight arrow from Row n unit to Row n+1 ten
+        const start = r.indices[0], end = r.indices[1];
         for (let i = start; i <= end; i++) {
             if (!barMap.has(i)) barMap.set(i, []);
             barMap.get(i).push({ startRow: start, endRow: end, barClass: bar });
