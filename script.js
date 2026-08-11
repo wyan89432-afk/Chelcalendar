@@ -14,6 +14,7 @@ const m4Container = document.getElementById('m4Container');
 const m5Container = document.getElementById('m5Container');
 const m6Container = document.getElementById('m6Container');
 const m7Container = document.getElementById('m7Container');
+const m8Container = document.getElementById('m8Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -50,6 +51,7 @@ function analyze() {
     analyzeM5(validNumbers);
     analyzeM6(validNumbers);
     analyzeM7(validNumbers);
+    analyzeM8(validNumbers);
 }
 
 // Utility: Odd/Even split
@@ -598,5 +600,159 @@ function renderSubTable(numbers, results, cssClass, title, colorFn, barFn) {
         html += `</div></div>`;
     }
     html += `</div><div class="status-message status-info">ကိုက်ညီမှုများ: ${matches.length}</div></div>`;
+    return html;
+}
+
+// ========== M8 LOGIC ==========
+// Formula: Left = Row N ten + Row N+1 ten → mod 10
+//          Right = Row N+1 unit + Row N+2 ten + Row N+3 hundred → mod 10
+// If Left == Right → match
+// Even table: Row 2,3 → Row 4,5 → Row 6,7... (start index 1, step 2)
+// Odd table: Row 1,2 → Row 3,4 → Row 5,6... (start index 0, step 2)
+// Arrow: straight arrow connecting the 4 digits in formula (Row N ten → Row N+1 ten, then Row N+1 unit → Row N+2 ten → Row N+3 hundred)
+function analyzeM8(numbers) {
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    const oddResults = calculateM8MatchesSubset(oddNumbers, numbers);
+    const evenResults = calculateM8MatchesSubset(evenNumbers, numbers);
+    
+    let html = '<div class="split-tables">';
+    html += renderSubTableM8(numbers, oddResults, 'odd', 'M8 Table - Odd');
+    html += renderSubTableM8(numbers, evenResults, 'even', 'M8 Table - Even');
+    html += '</div>';
+    m8Container.innerHTML = html;
+}
+
+function calculateM8MatchesSubset(subset, allNumbers) {
+    const results = [];
+    for (let i = 0; i < subset.length; i++) {
+        const nIdx = subset[i].actualIndex;
+        // Need Row N, N+1, N+2, N+3 (4 consecutive actual rows)
+        if (nIdx + 3 >= allNumbers.length) break;
+        
+        // Left: Row N ten + Row N+1 ten
+        const left = parseInt(allNumbers[nIdx][1]) + parseInt(allNumbers[nIdx+1][1]);
+        const leftMod = left % 10;
+        
+        // Right: Row N+1 unit + Row N+2 ten + Row N+3 hundred
+        const right = parseInt(allNumbers[nIdx+1][2]) + parseInt(allNumbers[nIdx+2][1]) + parseInt(allNumbers[nIdx+3][0]);
+        const rightMod = right % 10;
+        
+        results.push({
+            subIndex: i,
+            actualRowIndex: nIdx,
+            isMatch: leftMod === rightMod,
+            indices: [nIdx, nIdx+1, nIdx+2, nIdx+3],
+            leftVal: leftMod,
+            rightVal: rightMod
+        });
+    }
+    return results;
+}
+
+function renderSubTableM8(numbers, results, cssClass, title) {
+    // Identify consecutive groups (2+ matches)
+    const groups = identifyConsecutiveGroups(results);
+    const validGroups = groups.filter(g => g.length >= 2);
+    
+    // Get all valid check indices
+    const allValidIndices = new Set();
+    validGroups.forEach(group => group.forEach(idx => allValidIndices.add(idx)));
+    
+    // Build color map and arrow data
+    const colorMap = new Map();
+    const arrowData = []; // store arrow info for SVG rendering
+    let colorIdx = 0;
+    
+    allValidIndices.forEach(checkIndex => {
+        const r = results[checkIndex];
+        const color = colorClasses[colorIdx % colorClasses.length];
+        const bar = barClasses[colorIdx % barClasses.length];
+        colorIdx++;
+        
+        // Left side highlight: Row N ten (digit 1) + Row N+1 ten (digit 1)
+        colorMap.set(`${r.indices[0]}-1`, color);
+        colorMap.set(`${r.indices[1]}-1`, color);
+        
+        // Right side highlight: Row N+1 unit (digit 2) + Row N+2 ten (digit 1) + Row N+3 hundred (digit 0)
+        colorMap.set(`${r.indices[1]}-2`, color);
+        colorMap.set(`${r.indices[2]}-1`, color);
+        colorMap.set(`${r.indices[3]}-0`, color);
+        
+        // Arrows: connect the formula digits with straight lines
+        // Arrow 1: Row N ten → Row N+1 ten (left side connection)
+        arrowData.push({
+            startRow: r.indices[0], startDigit: 1,
+            endRow: r.indices[1], endDigit: 1,
+            bar: bar
+        });
+        // Arrow 2: Row N+1 unit → Row N+2 ten (right side connection)
+        arrowData.push({
+            startRow: r.indices[1], startDigit: 2,
+            endRow: r.indices[2], endDigit: 1,
+            bar: bar
+        });
+        // Arrow 3: Row N+2 ten → Row N+3 hundred (right side connection)
+        arrowData.push({
+            startRow: r.indices[2], startDigit: 1,
+            endRow: r.indices[3], endDigit: 0,
+            bar: bar
+        });
+    });
+    
+    const matches = [...allValidIndices].map(i => results[i]);
+    
+    // Render
+    const digitCenterX = [22.5, 75.5, 128.5];
+    const ROW_HEIGHT = 65;
+    
+    let html = `<div class="sub-table ${cssClass}"><h3 class="sub-table-title">${title}</h3><div class="results-grid" style="position:relative;">`;
+    
+    for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        html += `<div class="row-item"><div class="row-number">${i+1}</div><div class="digits-container">`;
+        for (let d = 0; d < 3; d++) {
+            const color = colorMap.get(`${i}-${d}`) || '';
+            html += `<div class="digit-box ${color} ${color ? 'highlighted' : ''}">${num[d]}</div>`;
+        }
+        
+        // Draw arrows starting from this row
+        arrowData.filter(a => a.startRow === i).forEach(arrow => {
+            const sx = digitCenterX[arrow.startDigit];
+            const sy = ROW_HEIGHT / 2;
+            const ex = digitCenterX[arrow.endDigit];
+            const ey = (arrow.endRow - arrow.startRow) * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const color = arrow.bar.replace('bar-', '');
+            const colorHex = {
+                'red': '#cc0000', 'blue': '#0033cc', 'green': '#009933',
+                'purple': '#aa00aa', 'orange': '#cc6600', 'cyan': '#009999',
+                'pink': '#cc0077', 'yellow': '#ccaa00', 'brown': '#654321', 'teal': '#004d4d'
+            }[color] || '#cc0000';
+            
+            const svgW = Math.abs(ex - sx) + 20;
+            const svgH = ey - sy + 20;
+            const svgX = Math.min(sx, ex) - 10;
+            const svgY = sy - 10;
+            const lx1 = sx - svgX, ly1 = sy - svgY;
+            const lx2 = ex - svgX, ly2 = ey - svgY;
+            
+            // Arrowhead
+            const dx = lx2 - lx1, dy = ly2 - ly1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const nx = dx/len, ny = dy/len;
+            const arrowSize = 6;
+            const ax = lx2 - nx * arrowSize, ay = ly2 - ny * arrowSize;
+            const p1x = ax - ny * arrowSize * 0.5, p1y = ay + nx * arrowSize * 0.5;
+            const p2x = ax + ny * arrowSize * 0.5, p2y = ay - nx * arrowSize * 0.5;
+            
+            html += `<svg style="position:absolute;left:${svgX}px;top:${svgY}px;width:${svgW}px;height:${svgH}px;z-index:3;pointer-events:none;overflow:visible;">
+                <line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${colorHex}" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="${lx2},${ly2} ${p1x},${p1y} ${p2x},${p2y}" fill="${colorHex}"/>
+            </svg>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    html += `</div><div class="status-message status-info">ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})</div></div>`;
     return html;
 }
