@@ -33,13 +33,19 @@ function analyze() {
         return;
     }
     
-    const numbers = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const numbers = input.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
     const validNumbers = [];
-    for (let num of numbers) {
+    for (let rawLine of numbers) {
+        // Accept 706, spaced rows such as 7 0 6, and image-style labels
+        // such as Row 1: 7 0 6.
+        const rowLabelRemoved = rawLine
+            .replace(/^row\s*\d+\s*[:.)-]?\s*/i, '')
+            .replace(/^\d{1,2}\s*[:.)-]\s*/, '');
+        const num = rowLabelRemoved.replace(/[\s,]+/g, '');
         if (/^\d{1,3}$/.test(num)) {
             validNumbers.push(num.padStart(3, '0'));
-        } else if (num.length > 0) {
-            m1Container.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${num}" သည် ဂဏန်းမဟုတ်ပါ။</div>`;
+        } else if (rawLine.length > 0) {
+            m1Container.innerHTML = `<div class="status-message status-warning">အမှားအယွင်း: "${rawLine}" သည် ဂဏန်းမဟုတ်ပါ။</div>`;
             return;
         }
     }
@@ -91,9 +97,16 @@ function getColorHex(barClass) {
 }
 
 // ========== UNIFIED RENDER ENGINE WITH ARROWS ==========
-function renderWithArrows(numbers, results, cssClass, title) {
+function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     const groups = identifyConsecutiveGroups(results);
-    const validGroups = groups.filter(g => g.length >= 2);
+    // M9 defines each matching four-row block as one group. Other tables
+    // retain the existing consecutive-match behavior.
+    const validGroups = options.eachMatchIsGroup
+        ? results.reduce((matchedGroups, result, index) => {
+            if (result.isMatch) matchedGroups.push([index]);
+            return matchedGroups;
+        }, [])
+        : groups.filter(g => g.length >= 2);
     
     const allValidIndices = new Set();
     validGroups.forEach(group => group.forEach(idx => allValidIndices.add(idx)));
@@ -174,7 +187,10 @@ function renderWithArrows(numbers, results, cssClass, title) {
         html += `</div></div>`;
     }
     
-    html += `</div><div class="status-message status-info">ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})</div></div>`;
+    const statusText = options.showCheckedCount
+        ? `စစ်ဆေးပြီးသောအုပ်စုများ: ${results.length} | ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`
+        : `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`;
+    html += `</div><div class="status-message status-info">${statusText}</div></div>`;
     return html;
 }
 
@@ -466,8 +482,8 @@ function calcM8(subset, all) {
 function analyzeM9(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     let html = '<div class="split-tables">';
-    html += renderWithArrows(numbers, calcM9(oddNumbers, numbers), 'odd', 'M9 Table - Odd');
-    html += renderWithArrows(numbers, calcM9(evenNumbers, numbers), 'even', 'M9 Table - Even');
+    html += renderWithArrows(numbers, calcM9(oddNumbers, numbers), 'odd', 'M9 Table - Odd', { eachMatchIsGroup: true, showCheckedCount: true });
+    html += renderWithArrows(numbers, calcM9(evenNumbers, numbers), 'even', 'M9 Table - Even', { eachMatchIsGroup: true, showCheckedCount: true });
     html += '</div>';
     m9Container.innerHTML = html;
 }
