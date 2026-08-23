@@ -233,32 +233,44 @@ function calcM1(subset, all) {
 // ========== M2 LOGIC ==========
 // Formula: (Row N hundred + Row N+1 hundred + Row N+2 hundred) mod 10 == (Row N+2 unit + Row N+3 unit) mod 10
 function analyzeM2(numbers) {
-    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     let html = '<div class="split-tables">';
-    html += renderWithArrows(numbers, calcM2(oddNumbers, numbers), 'odd', 'M2 Table - Odd');
-    html += renderWithArrows(numbers, calcM2(evenNumbers, numbers), 'even', 'M2 Table - Even');
+    html += renderWithArrows(
+        numbers,
+        calcM2(numbers, 0),
+        'odd',
+        'M2 Table - Odd (Row 1, 4, 7...)',
+        { eachMatchIsGroup: true, showCheckedCount: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM2(numbers, 1),
+        'even',
+        'M2 Table - Even (Row 2, 5, 8...)',
+        { eachMatchIsGroup: true, showCheckedCount: true }
+    );
     html += '</div>';
     m2Container.innerHTML = html;
 }
 
-function calcM2(subset, all) {
+function calcM2(all, startIdx) {
     const results = [];
-    for (let i = 0; i < subset.length; i++) {
-        const n = subset[i].actualIndex;
-        if (n + 3 >= all.length) break;
-        const hSum = parseInt(all[n][0]) + parseInt(all[n+1][0]) + parseInt(all[n+2][0]);
-        const uSum = parseInt(all[n+2][2]) + parseInt(all[n+3][2]);
+    for (let n = startIdx; n + 3 < all.length; n += 3) {
+        const hSum = parseInt(all[n][0]) + parseInt(all[n + 1][0]) + parseInt(all[n + 2][0]);
+        const uSum = parseInt(all[n + 2][2]) + parseInt(all[n + 3][2]);
         const isMatch = (hSum % 10) === (uSum % 10);
         results.push({
             isMatch,
             highlights: [
-                {row: n, digit: 0}, {row: n+1, digit: 0}, {row: n+2, digit: 0},
-                {row: n+2, digit: 2}, {row: n+3, digit: 2}
+                {row: n, digit: 0},
+                {row: n + 1, digit: 0},
+                {row: n + 2, digit: 0},
+                {row: n + 2, digit: 2},
+                {row: n + 3, digit: 2}
             ],
             arrows: [
-                {startRow: n, startDigit: 0, endRow: n+1, endDigit: 0},
-                {startRow: n+1, startDigit: 0, endRow: n+2, endDigit: 0},
-                {startRow: n+2, startDigit: 2, endRow: n+3, endDigit: 2}
+                {startRow: n, startDigit: 0, endRow: n + 1, endDigit: 0},
+                {startRow: n + 1, startDigit: 0, endRow: n + 2, endDigit: 0},
+                {startRow: n + 2, startDigit: 2, endRow: n + 3, endDigit: 2}
             ]
         });
     }
