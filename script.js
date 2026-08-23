@@ -190,7 +190,16 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     const statusText = options.showCheckedCount
         ? `စစ်ဆေးပြီးသောအုပ်စုများ: ${results.length} | ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`
         : `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`;
-    html += `</div><div class="status-message status-info">${statusText}</div></div>`;
+    const calculationDetails = options.showCalculations && results.length
+        ? `<div class="calculation-details">${results.map(r => `
+            <div class="calculation-row ${r.isMatch ? 'calculation-match' : 'calculation-no-match'}">
+                <span class="calculation-group">${r.calculation.groupLabel}</span>
+                <span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
+                <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>
+                <strong>${r.isMatch ? '✓ Match' : '≠ No match'}</strong>
+            </div>`).join('')}</div>`
+        : '';
+    html += `</div>${calculationDetails}<div class="status-message status-info">${statusText}</div></div>`;
     return html;
 }
 
@@ -239,14 +248,14 @@ function analyzeM2(numbers) {
         calcM2(numbers, 0),
         'odd',
         'M2 Table - Odd (Row 1, 4, 7...)',
-        { eachMatchIsGroup: true, showCheckedCount: true }
+        { eachMatchIsGroup: true, showCheckedCount: true, showCalculations: true }
     );
     html += renderWithArrows(
         numbers,
         calcM2(numbers, 1),
         'even',
         'M2 Table - Even (Row 2, 5, 8...)',
-        { eachMatchIsGroup: true, showCheckedCount: true }
+        { eachMatchIsGroup: true, showCheckedCount: true, showCalculations: true }
     );
     html += '</div>';
     m2Container.innerHTML = html;
@@ -260,6 +269,17 @@ function calcM2(all, startIdx) {
         const isMatch = (hSum % 10) === (uSum % 10);
         results.push({
             isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 4}`,
+                leftLabel: 'Hundreds',
+                leftDigits: [all[n][0], all[n + 1][0], all[n + 2][0]],
+                leftSum: hSum,
+                leftResult: hSum % 10,
+                rightLabel: 'Units',
+                rightDigits: [all[n + 2][2], all[n + 3][2]],
+                rightSum: uSum,
+                rightResult: uSum % 10
+            },
             highlights: [
                 {row: n, digit: 0},
                 {row: n + 1, digit: 0},
@@ -487,41 +507,68 @@ function calcM8(subset, all) {
 }
 
 // ========== M9 LOGIC ==========
-// Formula for each four-row block:
-// Left  = Row N ten + Row N unit + Row N+1 unit → mod 10
-// Right = Row N+2 hundred + Row N+2 unit + Row N+3 unit → mod 10
-// Odd blocks start at rows 1, 5, 9...; Even blocks start at rows 2, 6, 10...
+// Each complete four-row block contains two calculations.
+// Calculation 1: Row N tens + Row N units + Row N+1 units → unit digit.
+// Calculation 2: Row N+2 hundreds + Row N+2 units + Row N+3 units → unit digit.
+// Odd blocks start at Row 1, then Row 5, 9... (zero-based 0, 4, 8...).
+// Even blocks start at Row 2, then Row 6, 10... (zero-based 1, 5, 9...).
 function analyzeM9(numbers) {
-    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     let html = '<div class="split-tables">';
-    html += renderWithArrows(numbers, calcM9(oddNumbers, numbers), 'odd', 'M9 Table - Odd', { eachMatchIsGroup: true, showCheckedCount: true });
-    html += renderWithArrows(numbers, calcM9(evenNumbers, numbers), 'even', 'M9 Table - Even', { eachMatchIsGroup: true, showCheckedCount: true });
+    html += renderWithArrows(
+        numbers,
+        calcM9(numbers, 0),
+        'odd',
+        'M9 Table - Odd (Row 1–4, 5–8, 9–12...)',
+        { eachMatchIsGroup: true, showCheckedCount: true, showCalculations: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM9(numbers, 1),
+        'even',
+        'M9 Table - Even (Row 2–5, 6–9, 10–13...)',
+        { eachMatchIsGroup: true, showCheckedCount: true, showCalculations: true }
+    );
     html += '</div>';
     m9Container.innerHTML = html;
 }
 
-function calcM9(subset, all) {
+function calcM9(all, startIdx) {
     const results = [];
-    // A M9 block advances by four rows within the selected Odd/Even stream.
-    for (let i = 0; i < subset.length; i += 2) {
-        const n = subset[i].actualIndex;
-        if (n + 3 >= all.length) break;
-
-        const left = parseInt(all[n][1]) + parseInt(all[n][2]) + parseInt(all[n+1][2]);
-        const right = parseInt(all[n+2][0]) + parseInt(all[n+2][2]) + parseInt(all[n+3][2]);
-        const isMatch = (left % 10) === (right % 10);
+    for (let n = startIdx; n + 3 < all.length; n += 4) {
+        const leftDigits = [all[n][1], all[n][2], all[n + 1][2]];
+        const rightDigits = [all[n + 2][0], all[n + 2][2], all[n + 3][2]];
+        const leftSum = leftDigits.reduce((sum, digit) => sum + parseInt(digit), 0);
+        const rightSum = rightDigits.reduce((sum, digit) => sum + parseInt(digit), 0);
+        const leftResult = leftSum % 10;
+        const rightResult = rightSum % 10;
+        const isMatch = leftResult === rightResult;
 
         results.push({
             isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 4}`,
+                leftLabel: 'Calculation 1',
+                leftDigits,
+                leftSum,
+                leftResult,
+                rightLabel: 'Calculation 2',
+                rightDigits,
+                rightSum,
+                rightResult
+            },
             highlights: [
-                {row: n, digit: 1}, {row: n, digit: 2}, {row: n+1, digit: 2},
-                {row: n+2, digit: 0}, {row: n+2, digit: 2}, {row: n+3, digit: 2}
+                {row: n, digit: 1},
+                {row: n, digit: 2},
+                {row: n + 1, digit: 2},
+                {row: n + 2, digit: 0},
+                {row: n + 2, digit: 2},
+                {row: n + 3, digit: 2}
             ],
             arrows: [
                 {startRow: n, startDigit: 1, endRow: n, endDigit: 2},
-                {startRow: n, startDigit: 2, endRow: n+1, endDigit: 2},
-                {startRow: n+2, startDigit: 0, endRow: n+2, endDigit: 2},
-                {startRow: n+2, startDigit: 2, endRow: n+3, endDigit: 2}
+                {startRow: n, startDigit: 2, endRow: n + 1, endDigit: 2},
+                {startRow: n + 2, startDigit: 0, endRow: n + 2, endDigit: 2},
+                {startRow: n + 2, startDigit: 2, endRow: n + 3, endDigit: 2}
             ]
         });
     }
