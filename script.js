@@ -20,6 +20,7 @@ const m5Container = document.getElementById('m5Container');
 const m6Container = document.getElementById('m6Container');
 const m7Container = document.getElementById('m7Container');
 const m8Container = document.getElementById('m8Container');
+const m9Container = document.getElementById('m9Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -57,6 +58,7 @@ function analyze() {
     analyzeM6(validNumbers);
     analyzeM7(validNumbers);
     analyzeM8(validNumbers);
+    analyzeM9(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -450,6 +452,48 @@ function calcM8(subset, all) {
                 {startRow: n, startDigit: 1, endRow: n+1, endDigit: 1},
                 {startRow: n+1, startDigit: 2, endRow: n+2, endDigit: 1},
                 {startRow: n+2, startDigit: 1, endRow: n+3, endDigit: 0}
+            ]
+        });
+    }
+    return results;
+}
+
+// ========== M9 LOGIC ==========
+// Formula for each four-row block:
+// Left  = Row N ten + Row N unit + Row N+1 unit → mod 10
+// Right = Row N+2 hundred + Row N+2 unit + Row N+3 unit → mod 10
+// Odd blocks start at rows 1, 5, 9...; Even blocks start at rows 2, 6, 10...
+function analyzeM9(numbers) {
+    const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(numbers, calcM9(oddNumbers, numbers), 'odd', 'M9 Table - Odd');
+    html += renderWithArrows(numbers, calcM9(evenNumbers, numbers), 'even', 'M9 Table - Even');
+    html += '</div>';
+    m9Container.innerHTML = html;
+}
+
+function calcM9(subset, all) {
+    const results = [];
+    // A M9 block advances by four rows within the selected Odd/Even stream.
+    for (let i = 0; i < subset.length; i += 2) {
+        const n = subset[i].actualIndex;
+        if (n + 3 >= all.length) break;
+
+        const left = parseInt(all[n][1]) + parseInt(all[n][2]) + parseInt(all[n+1][2]);
+        const right = parseInt(all[n+2][0]) + parseInt(all[n+2][2]) + parseInt(all[n+3][2]);
+        const isMatch = (left % 10) === (right % 10);
+
+        results.push({
+            isMatch,
+            highlights: [
+                {row: n, digit: 1}, {row: n, digit: 2}, {row: n+1, digit: 2},
+                {row: n+2, digit: 0}, {row: n+2, digit: 2}, {row: n+3, digit: 2}
+            ],
+            arrows: [
+                {startRow: n, startDigit: 1, endRow: n, endDigit: 2},
+                {startRow: n, startDigit: 2, endRow: n+1, endDigit: 2},
+                {startRow: n+2, startDigit: 0, endRow: n+2, endDigit: 2},
+                {startRow: n+2, startDigit: 2, endRow: n+3, endDigit: 2}
             ]
         });
     }
