@@ -187,19 +187,15 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
         html += `</div></div>`;
     }
     
-    const statusText = options.showCheckedCount
-        ? `စစ်ဆေးပြီးသောအုပ်စုများ: ${results.length} | ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`
-        : `ကိုက်ညီသောအုပ်စုများ: ${validGroups.length} (Matches: ${matches.length})`;
     const calculationDetails = options.showCalculations && results.length
         ? `<div class="calculation-details">${results.map(r => `
-            <div class="calculation-row ${r.isMatch ? 'calculation-match' : 'calculation-no-match'}">
+            <div class="calculation-row">
                 <span class="calculation-group">${r.calculation.groupLabel}</span>
                 <span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
                 <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>
-                <strong>${r.isMatch ? '✓ Match' : '≠ No match'}</strong>
             </div>`).join('')}</div>`
         : '';
-    html += `</div>${calculationDetails}<div class="status-message status-info">${statusText}</div></div>`;
+    html += `</div>${calculationDetails}</div>`;
     return html;
 }
 
@@ -302,8 +298,8 @@ function calcM2(all, startIdx) {
 function analyzeM3(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     let html = '<div class="split-tables">';
-    html += renderWithArrows(numbers, calcM3(oddNumbers, numbers), 'odd', 'M3 Table - Odd');
-    html += renderWithArrows(numbers, calcM3(evenNumbers, numbers), 'even', 'M3 Table - Even');
+    html += renderWithArrows(numbers, calcM3(oddNumbers, numbers), 'odd', 'M3 Table - Odd', { eachMatchIsGroup: true, showCalculations: true });
+    html += renderWithArrows(numbers, calcM3(evenNumbers, numbers), 'even', 'M3 Table - Even', { eachMatchIsGroup: true, showCalculations: true });
     html += '</div>';
     m3Container.innerHTML = html;
 }
@@ -313,11 +309,26 @@ function calcM3(subset, all) {
     for (let i = 0; i < subset.length; i++) {
         const n = subset[i].actualIndex;
         if (n + 2 >= all.length) break;
-        const left = (parseInt(all[n+1][1]) + parseInt(all[n+1][2])) % 10;
-        const right = (parseInt(all[n][0]) + parseInt(all[n+1][0]) + parseInt(all[n+2][1])) % 10;
+        const leftDigits = [all[n + 1][1], all[n + 1][2]];
+        const rightDigits = [all[n][0], all[n + 1][0], all[n + 2][1]];
+        const leftSum = leftDigits.reduce((sum, digit) => sum + parseInt(digit), 0);
+        const rightSum = rightDigits.reduce((sum, digit) => sum + parseInt(digit), 0);
+        const left = leftSum % 10;
+        const right = rightSum % 10;
         const isMatch = left === right;
         results.push({
             isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 3}`,
+                leftLabel: 'Tens + Units',
+                leftDigits,
+                leftSum,
+                leftResult: left,
+                rightLabel: 'Hundreds + Hundreds + Tens',
+                rightDigits,
+                rightSum,
+                rightResult: right
+            },
             highlights: [
                 {row: n, digit: 0},
                 {row: n+1, digit: 0}, {row: n+1, digit: 1}, {row: n+1, digit: 2},
@@ -338,8 +349,8 @@ function calcM3(subset, all) {
 function analyzeM4(numbers) {
     const { oddNumbers, evenNumbers } = getOddEvenNumbers(numbers);
     let html = '<div class="split-tables">';
-    html += renderWithArrows(numbers, calcM4(oddNumbers, numbers), 'odd', 'M4 Table - Odd');
-    html += renderWithArrows(numbers, calcM4(evenNumbers, numbers), 'even', 'M4 Table - Even');
+    html += renderWithArrows(numbers, calcM4(oddNumbers, numbers), 'odd', 'M4 Table - Odd', { eachMatchIsGroup: true, showCalculations: true });
+    html += renderWithArrows(numbers, calcM4(evenNumbers, numbers), 'even', 'M4 Table - Even', { eachMatchIsGroup: true, showCalculations: true });
     html += '</div>';
     m4Container.innerHTML = html;
 }
@@ -349,10 +360,25 @@ function calcM4(subset, all) {
     for (let i = 0; i < subset.length; i++) {
         const n = subset[i].actualIndex;
         if (n + 4 >= all.length) break;
-        const sum = (parseInt(all[n][1]) + parseInt(all[n+1][1]) + parseInt(all[n+2][1])) % 10;
-        const isMatch = sum === parseInt(all[n+4][1]);
+        const leftDigits = [all[n][1], all[n + 1][1], all[n + 2][1]];
+        const leftSum = leftDigits.reduce((total, digit) => total + parseInt(digit), 0);
+        const rightDigits = [all[n + 4][1]];
+        const rightSum = parseInt(all[n + 4][1]);
+        const sum = leftSum % 10;
+        const isMatch = sum === rightSum;
         results.push({
             isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 5}`,
+                leftLabel: 'Tens + Tens + Tens',
+                leftDigits,
+                leftSum,
+                leftResult: sum,
+                rightLabel: 'Target Tens',
+                rightDigits,
+                rightSum,
+                rightResult: rightSum
+            },
             highlights: [
                 {row: n, digit: 1}, {row: n+1, digit: 1}, {row: n+2, digit: 1},
                 {row: n+4, digit: 1}
@@ -534,7 +560,10 @@ function analyzeM9(numbers) {
 
 function calcM9(all, startIdx) {
     const results = [];
-    for (let n = startIdx; n + 3 < all.length; n += 4) {
+    // startIdx 0 = displayed Row 1; startIdx 1 = displayed Row 2.
+    // Advance exactly four rows and stop only when a complete group is unavailable.
+    for (let start = startIdx; start + 3 < all.length; start += 4) {
+        const n = start;
         const leftDigits = [all[n][1], all[n][2], all[n + 1][2]];
         const rightDigits = [all[n + 2][0], all[n + 2][2], all[n + 3][2]];
         const leftSum = leftDigits.reduce((sum, digit) => sum + parseInt(digit), 0);
