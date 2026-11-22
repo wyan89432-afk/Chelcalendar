@@ -22,6 +22,7 @@ const m7Container = document.getElementById('m7Container');
 const m8Container = document.getElementById('m8Container');
 const m9Container = document.getElementById('m9Container');
 const m10Container = document.getElementById('m10Container');
+const m11Container = document.getElementById('m11Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -67,6 +68,7 @@ function analyze() {
     analyzeM8(validNumbers);
     analyzeM9(validNumbers);
     analyzeM10(validNumbers);
+    analyzeM11(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -218,10 +220,75 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     return html;
 }
 
+
+// ========== M11 LOGIC ==========
+// Each group checks three rows, with four rows between group starts.
+// Odd groups: Rows 1–3, 5–7, 9–11...
+// Even groups: Rows 2–4, 6–8, 10–12...
+// Sum = starting-row units + middle-row tens + ending-row tens.
+// Compare the final digit (sum % 10) with ending-row units.
+function analyzeM11(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM11(numbers, 0),
+        'odd',
+        'M11 Table - Odd (Rows 1–3, 5–7, 9–11...)',
+        { eachMatchIsGroup: true, showCalculations: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM11(numbers, 1),
+        'even',
+        'M11 Table - Even (Rows 2–4, 6–8, 10–12...)',
+        { eachMatchIsGroup: true, showCalculations: true }
+    );
+    html += '</div>';
+    m11Container.innerHTML = html;
+}
+
+function calcM11(all, startIdx) {
+    const results = [];
+    for (let n = startIdx; n + 2 < all.length; n += 4) {
+        const sumDigits = [all[n][2], all[n + 1][1], all[n + 2][1]];
+        const sum = sumDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const finalDigit = sum % 10;
+        const targetDigit = parseInt(all[n + 2][2], 10);
+        const isMatch = finalDigit === targetDigit;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 3}`,
+                leftLabel: 'Starting Unit + Middle Tens + Ending Tens',
+                leftDigits: sumDigits,
+                leftSum: sum,
+                leftResult: finalDigit,
+                rightLabel: `Row ${n + 3} Unit`,
+                rightDigits: [all[n + 2][2]],
+                rightSum: targetDigit,
+                rightResult: targetDigit
+            },
+            highlights: [
+                {row: n, digit: 2},
+                {row: n + 1, digit: 1},
+                {row: n + 2, digit: 1},
+                {row: n + 2, digit: 2}
+            ],
+            arrows: [
+                {startRow: n, startDigit: 2, endRow: n + 1, endDigit: 1},
+                {startRow: n + 1, startDigit: 1, endRow: n + 2, endDigit: 1},
+                {startRow: n + 2, startDigit: 1, endRow: n + 2, endDigit: 2}
+            ]
+        });
+    }
+    return results;
+}
+
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(10|[1-9])/i);
+    const match = title.match(/M(11|10|[1-9])/i);
     if (!match) return '';
     const n = Number(match[1]);
     const guides = {
@@ -234,7 +301,8 @@ function getTableLogicGuide(title) {
         7: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>A = Row N ၏ ယူနစ် + Row N+1 ၏ ဆယ်။ B = Row N+1 ၏ ယူနစ် + Row N+2 ၏ ယူနစ် + ဆယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။</p>',
         8: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမဘက် = Row N နှင့် Row N+1 ၏ ဆယ်ဂဏန်းပေါင်းလဒ်။ ဒုတိယဘက် = Row N+1 ၏ ယူနစ် + Row N+2 ၏ ဆယ် + Row N+3 ၏ ရာ။ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။</p>',
         9: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမတွက်ချက်မှု = Row N ၏ ဆယ် + ယူနစ် + Row N+1 ၏ ယူနစ်။ ဒုတိယတွက်ချက်မှု = Row N+2 ၏ ရာ + ယူနစ် + Row N+3 ၏ ယူနစ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။ Odd အုပ်စုသည် Row 1, 5, 9…၊ Even အုပ်စုသည် Row 2, 6, 10… မှစပါတယ်။</p>',
-        10: '<p><strong>အုပ်စုတစ်ခုမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> Row N ၏ ဆယ် + Row N+1 ၏ ရာ။</p><p><strong>ဒုတိယဘက်:</strong> Row N+2 ၏ ရာ + Row N+1 ၏ ယူနစ်။</p><p>နှစ်ဘက်ကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးတစ်လုံးကိုသာ ယူပါတယ်။ ဥပမာ 17 ဖြစ်လျှင် 7 ကိုယူပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူလျှင် အဲဒီ ၃ တန်းကို group တစ်ခုအဖြစ် သတ်မှတ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1–3, 4–6, 7–9…</p><p><strong>Even:</strong> Row 2–4, 5–7, 8–10…</p>'
+        10: '<p><strong>အုပ်စုတစ်ခုမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> Row N ၏ ဆယ် + Row N+1 ၏ ရာ။</p><p><strong>ဒုတိယဘက်:</strong> Row N+2 ၏ ရာ + Row N+1 ၏ ယူနစ်။</p><p>နှစ်ဘက်ကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးတစ်လုံးကိုသာ ယူပါတယ်။ ဥပမာ 17 ဖြစ်လျှင် 7 ကိုယူပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူလျှင် အဲဒီ ၃ တန်းကို group တစ်ခုအဖြစ် သတ်မှတ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1–3, 4–6, 7–9…</p><p><strong>Even:</strong> Row 2–4, 5–7, 8–10…</p>',
+        11: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပေါင်းရမည့်ဂဏန်း ၃ လုံး:</strong> စတင် Row ၏ ယူနစ်ဂဏန်း + အလယ် Row ၏ ဆယ်ဂဏန်း + နောက်ဆုံး Row ၏ ဆယ်ဂဏန်း။</p><p>ပေါင်းလဒ် 10 ထက်ကျော်လျှင် နောက်ဆုံးဂဏန်းတစ်လုံးကိုသာ ယူပါတယ်။ အဲဒီရလာတဲ့ဂဏန်းကို နောက်ဆုံး Row ၏ ယူနစ်ဂဏန်းနဲ့ နှိုင်းယှဉ်ပါတယ်။ တူညီလျှင် အဲဒီ Row ၃ တန်းကို ကိုက်ညီတဲ့ group အဖြစ် သတ်မှတ်ပြီး ဂဏန်းတွေနဲ့ မျဉ်းကြောင်းတွေကို အရောင်တစ်ရောင်တည်းနဲ့ ဖော်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1–3၊ 5–7၊ 9–11၊ 13–15… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p><strong>Even:</strong> Row 2–4၊ 6–8၊ 10–12၊ 14–16… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p>အုပ်စုတစ်ခု ပြည့်စုံရန် Row ၃ တန်းလုံး ရှိရပါမယ်။</p>'
     };
     if (!guides[n]) return '';
     return guides[n] + '<p class="logic-note">မှတ်ချက် — နောက်ဆုံးဂဏန်းယူခြင်းသည် 10 ဖြင့်စားပြီး အကြွင်းယူခြင်း (mod 10) ဖြစ်ပါတယ်။</p>';
