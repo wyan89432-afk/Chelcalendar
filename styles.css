@@ -619,3 +619,22 @@ footer {
     }
 }
 
+
+
+/* ========== COLLAPSIBLE TABLE LOGIC GUIDE ========== */
+.table-logic-guide { margin-top: 10px; border: 1px solid #d9e2f2; border-radius: 10px; background: #f8faff; overflow: hidden; }
+.table-logic-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; color: #294779; background: #edf3ff; font-size: .93em; font-weight: 700; cursor: pointer; list-style: none; user-select: none; }
+.table-logic-toggle::-webkit-details-marker { display: none; }
+.logic-toggle-hide { display: none; }
+.table-logic-guide[open] .logic-toggle-show { display: none; }
+.table-logic-guide[open] .logic-toggle-hide { display: inline; }
+.logic-toggle-icon { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; background: #dce8ff; position: relative; }
+.logic-toggle-icon::before { content: '+'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; }
+.table-logic-guide[open] .logic-toggle-icon::before { content: '−'; }
+.table-logic-content { padding: 13px 15px; color: #344054; font-size: .91em; line-height: 1.65; }
+.table-logic-content p { margin: 0 0 8px; }
+.table-logic-content p:last-child { margin-bottom: 0; }
+.table-logic-content strong { color: #243b63; }
+.table-logic-content .logic-note { margin-top: 10px; padding: 8px 10px; border-left: 3px solid #7c9fe6; background: #eef3ff; border-radius: 4px; font-size: .9em; }
+.table-logic-toggle:focus-visible { outline: 3px solid rgba(52,91,180,.4); outline-offset: -3px; }
+@media (max-width: 480px) { .table-logic-toggle { padding: 11px 12px; font-size: .87em; } .table-logic-content { padding: 11px 12px; font-size: .87em; } }

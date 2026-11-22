@@ -203,8 +203,41 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
                 </div>`).join('')}</div>
         </details>`
         : '';
-    html += `</div>${calculationDetails}</div>`;
+    const logicGuide = getTableLogicGuide(title);
+    const logicPanel = logicGuide
+        ? `<details class="table-logic-guide">
+            <summary class="table-logic-toggle">
+                <span class="logic-toggle-show">ဒီ Table ရဲ့ Logic ကိုကြည့်ရန်</span>
+                <span class="logic-toggle-hide">Logic ကိုဖျောက်ရန်</span>
+                <span class="logic-toggle-icon" aria-hidden="true"></span>
+            </summary>
+            <div class="table-logic-content">${logicGuide}</div>
+        </details>`
+        : '';
+    html += `</div>${calculationDetails}${logicPanel}</div>`;
     return html;
+}
+
+// ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
+
+function getTableLogicGuide(title) {
+    const match = title.match(/M(10|[1-9])/i);
+    if (!match) return '';
+    const n = Number(match[1]);
+    const guides = {
+        1: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>Row N ၏ ယူနစ် + Row N+1 ၏ ဆယ် + ယူနစ် + Row N+2 ၏ ဆယ် ကို ပေါင်းပါ။ နောက်ဆုံးဂဏန်းကို Row N ၏ ရာဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။</p><p>Odd သည် Row 1, 3, 5… မှစပြီး Even သည် Row 2, 4, 6… မှစပါတယ်။</p>',
+        2: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမဘက်တွင် Row N မှ Row N+2 အထိ ရာဂဏန်း ၃ လုံးကို ပေါင်းပါတယ်။ ဒုတိယဘက်တွင် Row N+2 နှင့် Row N+3 ၏ ယူနစ်ဂဏန်းကို ပေါင်းပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။ Odd/Even သည် Row 1/2 မှစ၍ ၃ တန်းစီ ရွေ့ပါတယ်။</p>',
+        3: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမဘက် = Row N+1 ၏ ဆယ် + ယူနစ်။ ဒုတိယဘက် = Row N ၏ ရာ + Row N+1 ၏ ရာ + Row N+2 ၏ ဆယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူမတူ စစ်ပါတယ်။</p>',
+        4: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>Row N မှ Row N+2 အထိ ဆယ်ဂဏန်း ၃ လုံးကို ပေါင်းပြီး နောက်ဆုံးဂဏန်းကို Row N+4 ၏ ဆယ်ဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။</p>',
+        5: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>Row N+1 ၏ ရာ + Row N+2 ၏ ရာ + ဆယ် ကို ပေါင်းပြီး နောက်ဆုံးဂဏန်းကို Row N ၏ ဆယ်ဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။</p>',
+        6: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>Row N ၏ ရာ + ယူနစ် + Row N+1 ၏ ရာ ကို ပေါင်းပါတယ်။ ရလာသော နောက်ဆုံးဂဏန်းကို Row N+1 ၏ ဆယ်ဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။</p>',
+        7: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>A = Row N ၏ ယူနစ် + Row N+1 ၏ ဆယ်။ B = Row N+1 ၏ ယူနစ် + Row N+2 ၏ ယူနစ် + ဆယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။</p>',
+        8: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမဘက် = Row N နှင့် Row N+1 ၏ ဆယ်ဂဏန်းပေါင်းလဒ်။ ဒုတိယဘက် = Row N+1 ၏ ယူနစ် + Row N+2 ၏ ဆယ် + Row N+3 ၏ ရာ။ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။</p>',
+        9: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမတွက်ချက်မှု = Row N ၏ ဆယ် + ယူနစ် + Row N+1 ၏ ယူနစ်။ ဒုတိယတွက်ချက်မှု = Row N+2 ၏ ရာ + ယူနစ် + Row N+3 ၏ ယူနစ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။ Odd အုပ်စုသည် Row 1, 5, 9…၊ Even အုပ်စုသည် Row 2, 6, 10… မှစပါတယ်။</p>',
+        10: '<p><strong>အုပ်စုတစ်ခုမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> Row N ၏ ဆယ် + Row N+1 ၏ ရာ။</p><p><strong>ဒုတိယဘက်:</strong> Row N+2 ၏ ရာ + Row N+1 ၏ ယူနစ်။</p><p>နှစ်ဘက်ကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးတစ်လုံးကိုသာ ယူပါတယ်။ ဥပမာ 17 ဖြစ်လျှင် 7 ကိုယူပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူလျှင် အဲဒီ ၃ တန်းကို group တစ်ခုအဖြစ် သတ်မှတ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1–3, 4–6, 7–9…</p><p><strong>Even:</strong> Row 2–4, 5–7, 8–10…</p>'
+    };
+    if (!guides[n]) return '';
+    return guides[n] + '<p class="logic-note">မှတ်ချက် — နောက်ဆုံးဂဏန်းယူခြင်းသည် 10 ဖြင့်စားပြီး အကြွင်းယူခြင်း (mod 10) ဖြစ်ပါတယ်။</p>';
 }
 
 // ========== M1 LOGIC ==========
