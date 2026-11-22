@@ -190,12 +190,18 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     }
     
     const calculationDetails = options.showCalculations && results.length
-        ? `<div class="calculation-details">${results.map(r => `
-            <div class="calculation-row">
-                <span class="calculation-group">${r.calculation.groupLabel}</span>
-                <span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
-                <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>
-            </div>`).join('')}</div>`
+        ? `<details class="calculation-report">
+            <summary class="calculation-report-toggle">
+                <span class="report-toggle-show">Show calculation report (${results.length} groups)</span>
+                <span class="report-toggle-hide">Hide calculation report (${results.length} groups)</span>
+            </summary>
+            <div class="calculation-details">${results.map(r => `
+                <div class="calculation-row">
+                    <span class="calculation-group">${r.calculation.groupLabel}</span>
+                    <span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
+                    <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>
+                </div>`).join('')}</div>
+        </details>`
         : '';
     html += `</div>${calculationDetails}</div>`;
     return html;
