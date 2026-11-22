@@ -21,6 +21,7 @@ const m6Container = document.getElementById('m6Container');
 const m7Container = document.getElementById('m7Container');
 const m8Container = document.getElementById('m8Container');
 const m9Container = document.getElementById('m9Container');
+const m10Container = document.getElementById('m10Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -65,6 +66,7 @@ function analyze() {
     analyzeM7(validNumbers);
     analyzeM8(validNumbers);
     analyzeM9(validNumbers);
+    analyzeM10(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -603,3 +605,69 @@ function calcM9(all, startIdx) {
     }
     return results;
 }
+
+// ========== M10 LOGIC ==========
+// Each M10 group checks three consecutive rows.
+// Odd starts: Row 1, 4, 7, 10...
+// Even starts: Row 2, 5, 8, 11...
+// Left = Row N tens + Row N+1 hundreds (unit digit only).
+// Right = Row N+2 hundreds + Row N+1 units (unit digit only).
+function analyzeM10(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM10(numbers, 0),
+        'odd',
+        'M10 Table - Odd (Rows 1, 4, 7...)',
+        { eachMatchIsGroup: true, showCalculations: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM10(numbers, 1),
+        'even',
+        'M10 Table - Even (Rows 2, 5, 8...)',
+        { eachMatchIsGroup: true, showCalculations: true }
+    );
+    html += '</div>';
+    m10Container.innerHTML = html;
+}
+
+function calcM10(all, startIdx) {
+    const results = [];
+    for (let n = startIdx; n + 2 < all.length; n += 3) {
+        const leftDigits = [all[n][1], all[n + 1][0]];
+        const rightDigits = [all[n + 2][0], all[n + 1][2]];
+        const leftSum = leftDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+        const rightSum = rightDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+        const leftResult = leftSum % 10;
+        const rightResult = rightSum % 10;
+        const isMatch = leftResult === rightResult;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 3}`,
+                leftLabel: 'Tens + Hundreds',
+                leftDigits,
+                leftSum,
+                leftResult,
+                rightLabel: 'Hundreds + Units',
+                rightDigits,
+                rightSum,
+                rightResult
+            },
+            highlights: [
+                {row: n, digit: 1},
+                {row: n + 1, digit: 0},
+                {row: n + 1, digit: 2},
+                {row: n + 2, digit: 0}
+            ],
+            arrows: [
+                {startRow: n, startDigit: 1, endRow: n + 1, endDigit: 0},
+                {startRow: n + 1, startDigit: 2, endRow: n + 2, endDigit: 0}
+            ]
+        });
+    }
+    return results;
+}
+
