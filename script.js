@@ -130,7 +130,14 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
         // Apply highlights
         if (r.highlights) {
             r.highlights.forEach(h => {
-                colorMap.set(`${h.row}-${h.digit}`, color);
+                const key = `${h.row}-${h.digit}`;
+                if (options.multiColorHighlights) {
+                    const existing = colorMap.get(key) || [];
+                    if (!existing.includes(color)) existing.push(color);
+                    colorMap.set(key, existing);
+                } else {
+                    colorMap.set(key, color);
+                }
             });
         }
         
@@ -156,8 +163,22 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
         const num = numbers[i];
         html += `<div class="row-item"><div class="row-number">${i+1}</div><div class="digits-container">`;
         for (let d = 0; d < 3; d++) {
-            const color = colorMap.get(`${i}-${d}`) || '';
-            html += `<div class="digit-box ${color} ${color ? 'highlighted' : ''}">${num[d]}</div>`;
+            const mappedColors = colorMap.get(`${i}-${d}`) || '';
+            const color = Array.isArray(mappedColors) ? mappedColors[0] : mappedColors;
+            const multiColor = Array.isArray(mappedColors) && mappedColors.length > 1;
+            let multiColorStyle = '';
+            if (multiColor) {
+                const hexColors = mappedColors.map(name => colorHexMap[name.replace('color-', '')]);
+                const stripeSize = 100 / hexColors.length;
+                const stripes = hexColors.map((hex, index) =>
+                    `${hex} ${index * stripeSize}% ${(index + 1) * stripeSize}%`
+                ).join(', ');
+                const rings = hexColors.slice(1).map((hex, index) =>
+                    `0 0 0 ${3 + index * 2}px ${hex}`
+                );
+                multiColorStyle = ` style="background:linear-gradient(135deg, ${stripes});color:#fff;border-color:${hexColors[0]};box-shadow:${rings.join(', ')}"`;
+            }
+            html += `<div class="digit-box ${multiColor ? '' : color} ${mappedColors ? 'highlighted' : ''}"${multiColorStyle}>${num[d]}</div>`;
         }
         
         // Draw arrows starting from this row
@@ -202,8 +223,10 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
             <div class="calculation-details">${results.map(r => `
                 <div class="calculation-row">
                     <span class="calculation-group">${r.calculation.groupLabel}</span>
-                    <span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
-                    <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>
+                    ${r.calculation.detailLines
+                        ? r.calculation.detailLines.map(line => `<span>${line}</span>`).join('')
+                        : `<span>${r.calculation.leftLabel}: ${r.calculation.leftDigits.join(' + ')} = ${r.calculation.leftSum} → ${r.calculation.leftResult}</span>
+                           <span>${r.calculation.rightLabel}: ${r.calculation.rightDigits.join(' + ')} = ${r.calculation.rightSum} → ${r.calculation.rightResult}</span>`}
                 </div>`).join('')}</div>
         </details>`
         : '';
@@ -289,27 +312,26 @@ function calcM11(all, startIdx) {
 
 
 // ========== M12 LOGIC ==========
-// Each comparison uses the starting row, the row two places later,
-// and the ending row four places later.
-// Left = (starting-row units + ending-row hundreds) % 10.
-// Right = (middle-row hundreds + middle-row units) % 10.
-// Odd starts: Rows 1, 5, 9, 13...
-// Even starts: Rows 2, 6, 10, 14...
+// For each start row N:
+// A = (Row N unit + Row N+4 hundred) % 10
+// B = (Row N+2 hundred + Row N+2 unit) % 10
+// Result = (A - B) modulo 10; compare with Row N+6 hundred.
+// Odd starts: Rows 1, 3, 5...; Even starts: Rows 2, 4, 6...
 function analyzeM12(numbers) {
     let html = '<div class="split-tables">';
     html += renderWithArrows(
         numbers,
         calcM12(numbers, 0),
         'odd',
-        'M12 Table - Odd (Rows 1, 5, 9, 13...)',
-        { eachMatchIsGroup: true, showCalculations: true }
+        'M12 Table - Odd (Rows 1, 3, 5, 7...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
     );
     html += renderWithArrows(
         numbers,
         calcM12(numbers, 1),
         'even',
-        'M12 Table - Even (Rows 2, 6, 10, 14...)',
-        { eachMatchIsGroup: true, showCalculations: true }
+        'M12 Table - Even (Rows 2, 4, 6, 8...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
     );
     html += '</div>';
     m12Container.innerHTML = html;
@@ -317,24 +339,33 @@ function analyzeM12(numbers) {
 
 function calcM12(all, startIdx) {
     const results = [];
-    for (let n = startIdx; n + 4 < all.length; n += 4) {
+    for (let n = startIdx; n + 6 < all.length; n += 2) {
         const leftDigits = [all[n][2], all[n + 4][0]];
         const rightDigits = [all[n + 2][0], all[n + 2][2]];
         const leftSum = leftDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
         const rightSum = rightDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
         const leftResult = leftSum % 10;
         const rightResult = rightSum % 10;
-        const isMatch = leftResult === rightResult;
+        const difference = leftResult - rightResult;
+        const finalResult = (difference + 10) % 10;
+        const targetDigit = parseInt(all[n + 6][0], 10);
+        const isMatch = finalResult === targetDigit;
 
         results.push({
             isMatch,
             calculation: {
-                groupLabel: `Rows ${n + 1}, ${n + 3} & ${n + 5}`,
-                leftLabel: 'Starting Unit + Ending Hundreds',
+                groupLabel: `Rows ${n + 1}, ${n + 3}, ${n + 5} & ${n + 7}`,
+                detailLines: [
+                    `A: Row ${n + 1} Unit ${leftDigits[0]} + Row ${n + 5} Hundred ${leftDigits[1]} = ${leftSum} → ${leftResult}`,
+                    `B: Row ${n + 3} Hundred ${rightDigits[0]} + Unit ${rightDigits[1]} = ${rightSum} → ${rightResult}`,
+                    `A − B: ${leftResult} − ${rightResult} = ${difference} → ${finalResult}`,
+                    `Compare with Row ${n + 7} Hundred: ${targetDigit} → ${isMatch ? 'MATCH' : 'No match'}`
+                ],
+                leftLabel: 'A',
                 leftDigits,
                 leftSum,
                 leftResult,
-                rightLabel: 'Middle Hundreds + Units',
+                rightLabel: 'B',
                 rightDigits,
                 rightSum,
                 rightResult
@@ -343,16 +374,19 @@ function calcM12(all, startIdx) {
                 {row: n, digit: 2},
                 {row: n + 4, digit: 0},
                 {row: n + 2, digit: 0},
-                {row: n + 2, digit: 2}
+                {row: n + 2, digit: 2},
+                {row: n + 6, digit: 0}
             ],
             arrows: [
                 {startRow: n, startDigit: 2, endRow: n + 4, endDigit: 0},
-                {startRow: n + 2, startDigit: 0, endRow: n + 2, endDigit: 2}
+                {startRow: n + 2, startDigit: 0, endRow: n + 2, endDigit: 2},
+                {startRow: n + 2, startDigit: 2, endRow: n + 6, endDigit: 0}
             ]
         });
     }
     return results;
 }
+
 
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
@@ -372,7 +406,7 @@ function getTableLogicGuide(title) {
         9: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမတွက်ချက်မှု = Row N ၏ ဆယ် + ယူနစ် + Row N+1 ၏ ယူနစ်။ ဒုတိယတွက်ချက်မှု = Row N+2 ၏ ရာ + ယူနစ် + Row N+3 ၏ ယူနစ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။ Odd အုပ်စုသည် Row 1, 5, 9…၊ Even အုပ်စုသည် Row 2, 6, 10… မှစပါတယ်။</p>',
         10: '<p><strong>အုပ်စုတစ်ခုမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> Row N ၏ ဆယ် + Row N+1 ၏ ရာ။</p><p><strong>ဒုတိယဘက်:</strong> Row N+2 ၏ ရာ + Row N+1 ၏ ယူနစ်။</p><p>နှစ်ဘက်ကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးတစ်လုံးကိုသာ ယူပါတယ်။ ဥပမာ 17 ဖြစ်လျှင် 7 ကိုယူပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူလျှင် အဲဒီ ၃ တန်းကို group တစ်ခုအဖြစ် သတ်မှတ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1–3, 4–6, 7–9…</p><p><strong>Even:</strong> Row 2–4, 5–7, 8–10…</p>',
         11: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပေါင်းရမည့်ဂဏန်း ၃ လုံး:</strong> စတင် Row ၏ ယူနစ်ဂဏန်း + အလယ် Row ၏ ဆယ်ဂဏန်း + နောက်ဆုံး Row ၏ ဆယ်ဂဏန်း။</p><p>ပေါင်းလဒ် 10 ထက်ကျော်လျှင် နောက်ဆုံးဂဏန်းတစ်လုံးကိုသာ ယူပါတယ်။ အဲဒီရလာတဲ့ဂဏန်းကို နောက်ဆုံး Row ၏ ယူနစ်ဂဏန်းနဲ့ နှိုင်းယှဉ်ပါတယ်။ တူညီလျှင် အဲဒီ Row ၃ တန်းကို ကိုက်ညီတဲ့ group အဖြစ် သတ်မှတ်ပြီး ဂဏန်းတွေနဲ့ မျဉ်းကြောင်းတွေကို အရောင်တစ်ရောင်တည်းနဲ့ ဖော်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1–3၊ 5–7၊ 9–11၊ 13–15… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p><strong>Even:</strong> Row 2–4၊ 6–8၊ 10–12၊ 14–16… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p>အုပ်စုတစ်ခု ပြည့်စုံရန် Row ၃ တန်းလုံး ရှိရပါမယ်။</p>',
-        12: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၅ တန်းအကွာရှိတဲ့ အစ/အလယ်/အဆုံး Row ၃ ခုကို အသုံးပြုပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> စတင် Row ၏ ယူနစ်ဂဏန်း + နောက်ဆုံး Row (၄ တန်းအကြာ) ၏ ရာဂဏန်း။</p><p><strong>ဒုတိယဘက်:</strong> အလယ် Row (၂ တန်းအကြာ) ၏ ရာဂဏန်း + ယူနစ်ဂဏန်း။</p><p>နှစ်ဘက်လုံးကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးဂဏန်းတစ်လုံးကိုသာ ယူပါတယ်။ နှစ်ဘက်ရလဒ်တူညီလျှင် အဲဒီ အစ/အလယ်/အဆုံး Row ၃ ခုကို group တစ်ခုအဖြစ် သတ်မှတ်ပြီး သက်ဆိုင်ရာဂဏန်းနဲ့ မျဉ်းကြောင်းတွေကို အရောင်တစ်ရောင်တည်းနဲ့ ချိတ်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1, 5, 9, 13… မှ စပြီး Row N, N+2, N+4 ကို စစ်ပါတယ်။</p><p><strong>Even:</strong> Row 2, 6, 10, 14… မှ စပြီး Row N, N+2, N+4 ကို စစ်ပါတယ်။</p><p>နောက် group တစ်ခုစီမှာ စတင် Row ကို ၄ တန်းရွှေ့ပါတယ်။ လိုအပ်တဲ့ Row အားလုံး မပြည့်စုံလျှင် အဲဒီ group ကို မတွက်ပါ။</p>'
+        12: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၄ ခုကို အသုံးပြုပါတယ်။</strong></p><p><strong>A:</strong> စတင် Row N ၏ ယူနစ်ဂဏန်း + Row N+4 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>B:</strong> အလယ် Row N+2 ၏ ရာဂဏန်း + ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>နုတ်ခြင်း:</strong> A − B ကိုတွက်ပါ။ အဖြေ အနုတ်ဖြစ်လျှင် 10 ဖြင့်ပတ်လည်ယူပြီး နောက်ဆုံးဂဏန်းကိုယူပါ။ ရလာသောဂဏန်းကို Row N+6 ၏ ရာဂဏန်းနှင့် နှိုင်းယှဉ်ပါ။ တူညီလျှင် Match ဖြစ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1, 3, 5, 7… မှ စပါတယ်။ အုပ်စုများမှာ Row 1,3,5,7၊ Row 3,5,7,9၊ Row 5,7,9,11… ဖြစ်ပါတယ်။</p><p><strong>Even:</strong> Row 2, 4, 6, 8… မှ စပါတယ်။ အုပ်စုများမှာ Row 2,4,6,8၊ Row 4,6,8,10၊ Row 6,8,10,12… ဖြစ်ပါတယ်။</p><p>အုပ်စုတစ်ခုစီ၏ စတင် Row ကို ၂ တန်းစီ ရွှေ့ပြီး အရောင်ကို Loop လုပ်ကာ ကိုက်ညီသော အုပ်စုအားလုံးကို ဖော်ပြပါတယ်။</p>'
     };
     if (!guides[n]) return '';
     return guides[n] + '<p class="logic-note">မှတ်ချက် — နောက်ဆုံးဂဏန်းယူခြင်းသည် 10 ဖြင့်စားပြီး အကြွင်းယူခြင်း (mod 10) ဖြစ်ပါတယ်။</p>';
