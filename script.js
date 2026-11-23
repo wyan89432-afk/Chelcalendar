@@ -24,6 +24,7 @@ const m9Container = document.getElementById('m9Container');
 const m10Container = document.getElementById('m10Container');
 const m11Container = document.getElementById('m11Container');
 const m12Container = document.getElementById('m12Container');
+const m13Container = document.getElementById('m13Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -71,6 +72,7 @@ function analyze() {
     analyzeM10(validNumbers);
     analyzeM11(validNumbers);
     analyzeM12(validNumbers);
+    analyzeM13(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -388,10 +390,79 @@ function calcM12(all, startIdx) {
 }
 
 
+
+// ========== M13 LOGIC ==========
+// Sum = Row N hundred + Row N+1 tens + Row N+2 tens.
+// Compare sum % 10 with Row N+1 hundred.
+// Odd starts: Rows 1, 3, 5, 7...
+// Even starts: Rows 2, 4, 6, 8...
+// Start row advances by two for each next group.
+function analyzeM13(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM13(numbers, 0),
+        'odd',
+        'M13 Table - Odd (Rows 1, 3, 5, 7...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM13(numbers, 1),
+        'even',
+        'M13 Table - Even (Rows 2, 4, 6, 8...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m13Container.innerHTML = html;
+}
+
+function calcM13(all, startIdx) {
+    const results = [];
+    for (let n = startIdx; n + 2 < all.length; n += 2) {
+        const sumDigits = [all[n][0], all[n + 1][1], all[n + 2][1]];
+        const sum = sumDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const finalDigit = sum % 10;
+        const targetDigit = parseInt(all[n + 1][0], 10);
+        const isMatch = finalDigit === targetDigit;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1} & ${n + 3} (Middle Row ${n + 2})`,
+                detailLines: [
+                    `Row ${n + 1} Hundred ${sumDigits[0]} + Row ${n + 2} Tens ${sumDigits[1]} + Row ${n + 3} Tens ${sumDigits[2]} = ${sum} → ${finalDigit}`,
+                    `Compare with Row ${n + 2} Hundred: ${targetDigit} → ${isMatch ? 'MATCH' : 'No match'}`
+                ],
+                leftLabel: 'Hundreds + Tens + Tens',
+                leftDigits: sumDigits,
+                leftSum: sum,
+                leftResult: finalDigit,
+                rightLabel: 'Middle Row Hundred',
+                rightDigits: [all[n + 1][0]],
+                rightSum: targetDigit,
+                rightResult: targetDigit
+            },
+            highlights: [
+                {row: n, digit: 0},
+                {row: n + 1, digit: 1},
+                {row: n + 2, digit: 1},
+                {row: n + 1, digit: 0}
+            ],
+            arrows: [
+                {startRow: n, startDigit: 0, endRow: n + 1, endDigit: 1},
+                {startRow: n + 1, startDigit: 1, endRow: n + 2, endDigit: 1},
+                {startRow: n + 1, startDigit: 0, endRow: n + 2, endDigit: 1}
+            ]
+        });
+    }
+    return results;
+}
+
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(12|11|10|[1-9])/i);
+    const match = title.match(/M(13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = Number(match[1]);
     const guides = {
@@ -406,7 +477,8 @@ function getTableLogicGuide(title) {
         9: '<p><strong>ဘယ်လိုစစ်သလဲ</strong></p><p>ပထမတွက်ချက်မှု = Row N ၏ ဆယ် + ယူနစ် + Row N+1 ၏ ယူနစ်။ ဒုတိယတွက်ချက်မှု = Row N+2 ၏ ရာ + ယူနစ် + Row N+3 ၏ ယူနစ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူရင် ကိုက်ညီပါတယ်။ Odd အုပ်စုသည် Row 1, 5, 9…၊ Even အုပ်စုသည် Row 2, 6, 10… မှစပါတယ်။</p>',
         10: '<p><strong>အုပ်စုတစ်ခုမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပထမဘက်:</strong> Row N ၏ ဆယ် + Row N+1 ၏ ရာ။</p><p><strong>ဒုတိယဘက်:</strong> Row N+2 ၏ ရာ + Row N+1 ၏ ယူနစ်။</p><p>နှစ်ဘက်ကို သီးခြားပေါင်းပြီး 10 ထက်ကျော်လျှင် နောက်ဆုံးတစ်လုံးကိုသာ ယူပါတယ်။ ဥပမာ 17 ဖြစ်လျှင် 7 ကိုယူပါတယ်။ နှစ်ဘက်၏ နောက်ဆုံးဂဏန်းတူလျှင် အဲဒီ ၃ တန်းကို group တစ်ခုအဖြစ် သတ်မှတ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1–3, 4–6, 7–9…</p><p><strong>Even:</strong> Row 2–4, 5–7, 8–10…</p>',
         11: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၃ တန်း ပါပါတယ်။</strong></p><p><strong>ပေါင်းရမည့်ဂဏန်း ၃ လုံး:</strong> စတင် Row ၏ ယူနစ်ဂဏန်း + အလယ် Row ၏ ဆယ်ဂဏန်း + နောက်ဆုံး Row ၏ ဆယ်ဂဏန်း။</p><p>ပေါင်းလဒ် 10 ထက်ကျော်လျှင် နောက်ဆုံးဂဏန်းတစ်လုံးကိုသာ ယူပါတယ်။ အဲဒီရလာတဲ့ဂဏန်းကို နောက်ဆုံး Row ၏ ယူနစ်ဂဏန်းနဲ့ နှိုင်းယှဉ်ပါတယ်။ တူညီလျှင် အဲဒီ Row ၃ တန်းကို ကိုက်ညီတဲ့ group အဖြစ် သတ်မှတ်ပြီး ဂဏန်းတွေနဲ့ မျဉ်းကြောင်းတွေကို အရောင်တစ်ရောင်တည်းနဲ့ ဖော်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1–3၊ 5–7၊ 9–11၊ 13–15… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p><strong>Even:</strong> Row 2–4၊ 6–8၊ 10–12၊ 14–16… (၄ တန်းစီ ရွေ့ပါတယ်။)</p><p>အုပ်စုတစ်ခု ပြည့်စုံရန် Row ၃ တန်းလုံး ရှိရပါမယ်။</p>',
-        12: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၄ ခုကို အသုံးပြုပါတယ်။</strong></p><p><strong>A:</strong> စတင် Row N ၏ ယူနစ်ဂဏန်း + Row N+4 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>B:</strong> အလယ် Row N+2 ၏ ရာဂဏန်း + ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>နုတ်ခြင်း:</strong> A − B ကိုတွက်ပါ။ အဖြေ အနုတ်ဖြစ်လျှင် 10 ဖြင့်ပတ်လည်ယူပြီး နောက်ဆုံးဂဏန်းကိုယူပါ။ ရလာသောဂဏန်းကို Row N+6 ၏ ရာဂဏန်းနှင့် နှိုင်းယှဉ်ပါ။ တူညီလျှင် Match ဖြစ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1, 3, 5, 7… မှ စပါတယ်။ အုပ်စုများမှာ Row 1,3,5,7၊ Row 3,5,7,9၊ Row 5,7,9,11… ဖြစ်ပါတယ်။</p><p><strong>Even:</strong> Row 2, 4, 6, 8… မှ စပါတယ်။ အုပ်စုများမှာ Row 2,4,6,8၊ Row 4,6,8,10၊ Row 6,8,10,12… ဖြစ်ပါတယ်။</p><p>အုပ်စုတစ်ခုစီ၏ စတင် Row ကို ၂ တန်းစီ ရွှေ့ပြီး အရောင်ကို Loop လုပ်ကာ ကိုက်ညီသော အုပ်စုအားလုံးကို ဖော်ပြပါတယ်။</p>'
+        12: '<p><strong>အုပ်စုတစ်ခုစီမှာ Row ၄ ခုကို အသုံးပြုပါတယ်။</strong></p><p><strong>A:</strong> စတင် Row N ၏ ယူနစ်ဂဏန်း + Row N+4 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>B:</strong> အလယ် Row N+2 ၏ ရာဂဏန်း + ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းကိုယူပါ။</p><p><strong>နုတ်ခြင်း:</strong> A − B ကိုတွက်ပါ။ အဖြေ အနုတ်ဖြစ်လျှင် 10 ဖြင့်ပတ်လည်ယူပြီး နောက်ဆုံးဂဏန်းကိုယူပါ။ ရလာသောဂဏန်းကို Row N+6 ၏ ရာဂဏန်းနှင့် နှိုင်းယှဉ်ပါ။ တူညီလျှင် Match ဖြစ်ပါတယ်။</p><p><strong>Odd:</strong> Row 1, 3, 5, 7… မှ စပါတယ်။ အုပ်စုများမှာ Row 1,3,5,7၊ Row 3,5,7,9၊ Row 5,7,9,11… ဖြစ်ပါတယ်။</p><p><strong>Even:</strong> Row 2, 4, 6, 8… မှ စပါတယ်။ အုပ်စုများမှာ Row 2,4,6,8၊ Row 4,6,8,10၊ Row 6,8,10,12… ဖြစ်ပါတယ်။</p><p>အုပ်စုတစ်ခုစီ၏ စတင် Row ကို ၂ တန်းစီ ရွှေ့ပြီး အရောင်ကို Loop လုပ်ကာ ကိုက်ညီသော အုပ်စုအားလုံးကို ဖော်ပြပါတယ်။</p>',
+        13: '<p><strong>အုပ်စုတစ်ခုစီမှာ ဆက်တိုက် Row ၃ တန်းကို အသုံးပြုပါတယ်။</strong></p><p><strong>ပေါင်းရမည့်ဂဏန်းများ:</strong> ပထမ Row ၏ ရာဂဏန်း + အလယ် Row ၏ ဆယ်ဂဏန်း + နောက်ဆုံး Row ၏ ဆယ်ဂဏန်း။</p><p>ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးဂဏန်းတစ်လုံးကိုသာ ယူပြီး အလယ် Row ၏ ရာဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။ တူညီလျှင် အဲဒီအုပ်စုကို Match အဖြစ် သတ်မှတ်ပြီး ပါဝင်တဲ့ ဂဏန်း ၄ လုံးကို သက်ဆိုင်ရာ အရောင်နဲ့ မျဉ်းကြောင်းချိတ်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1, 3, 5, 7… မှ စပြီး Row N, N+2 ကို အုပ်စုအမည်အဖြစ် ဖော်ပြပါတယ်။ အလယ် Row N+1 က ပေါင်းချက်ထဲပါဝင်ပြီး စစ်ဆေးမယ့် ရာဂဏန်းလည်း ဖြစ်ပါတယ်။</p><p><strong>Even:</strong> Row 2, 4, 6, 8… မှ စပြီး အလားတူ တွက်ချက်ပါတယ်။</p><p>နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၂ တန်းစီ ရွှေ့ပါတယ်။ ကိုက်ညီတဲ့ group တစ်ခုစီကို အရောင် loop ဖြင့် သီးခြားပြသပါတယ်။</p>'
     };
     if (!guides[n]) return '';
     return guides[n] + '<p class="logic-note">မှတ်ချက် — နောက်ဆုံးဂဏန်းယူခြင်းသည် 10 ဖြင့်စားပြီး အကြွင်းယူခြင်း (mod 10) ဖြစ်ပါတယ်။</p>';
