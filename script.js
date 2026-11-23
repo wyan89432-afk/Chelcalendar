@@ -451,8 +451,7 @@ function calcM13(all, startIdx) {
             ],
             arrows: [
                 {startRow: n, startDigit: 0, endRow: n + 1, endDigit: 1},
-                {startRow: n + 1, startDigit: 1, endRow: n + 2, endDigit: 1},
-                {startRow: n + 1, startDigit: 0, endRow: n + 2, endDigit: 1}
+                {startRow: n + 1, startDigit: 1, endRow: n + 2, endDigit: 1}
             ]
         });
     }
