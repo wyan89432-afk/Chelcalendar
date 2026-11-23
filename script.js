@@ -996,7 +996,7 @@ function calcM14(all, startIdx) {
                 groupLabel: `Rows ${n + 1}–${n + 4}`,
                 detailLines: [
                     `A: Row ${n + 1} Hundred ${aDigits[0]} + Row ${n + 3} Unit ${aDigits[1]} + Row ${n + 4} Ten ${aDigits[2]} = ${aSum} → ${aResult}`,
-                    `B: Row ${n + 2} Unit ${bDigits[0]} + Row ${n + 3} Hundred ${bDigits[1]} + Row ${n + 4} Unit ${bDigits[2]} = ${bSum} → ${bSum} → ${bResult}`,
+                    `B: Row ${n + 2} Unit ${bDigits[0]} + Row ${n + 3} Hundred ${bDigits[1]} + Row ${n + 4} Unit ${bDigits[2]} = ${bSum} → ${bResult}`,
                     `A ${aResult} ${isMatch ? '=' : '≠'} B ${bResult} → ${isMatch ? 'MATCH' : 'No match'}`
                 ],
                 leftLabel: 'A', leftDigits: aDigits, leftSum: aSum, leftResult: aResult,
