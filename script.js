@@ -1293,14 +1293,14 @@ function calcM18(all, startIdx) {
             highlights: [
                 {row: n, digit: 0},
                 {row: n, digit: 1},
-                {row: n + 1, digit: 0},
+                {row: n + 1, digit: 1},
                 {row: n + 1, digit: 2},
                 {row: n + 2, digit: 2},
                 {row: n + 3, digit: 1}
             ],
             arrows: [
                 {startRow: n, startDigit: 0, endRow: n, endDigit: 1},
-                {startRow: n, startDigit: 1, endRow: n + 1, endDigit: 0},
+                {startRow: n, startDigit: 1, endRow: n + 1, endDigit: 1},
                 {startRow: n + 1, startDigit: 2, endRow: n + 2, endDigit: 2},
                 {startRow: n + 2, startDigit: 2, endRow: n + 3, endDigit: 1}
             ]
