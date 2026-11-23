@@ -1262,10 +1262,13 @@ function analyzeM18(numbers) {
 }
 
 function calcM18(all, startIdx) {
+    const HUNDRED = 0;
+    const TEN = 1;
+    const UNIT = 2;
     const results = [];
     for (let n = startIdx; n + 3 < all.length; n += 4) {
-        const aDigits = [all[n][0], all[n][1], all[n + 1][1]];
-        const bDigits = [all[n + 1][2], all[n + 2][2], all[n + 3][1]];
+        const aDigits = [all[n][HUNDRED], all[n][TEN], all[n + 1][TEN]];
+        const bDigits = [all[n + 1][UNIT], all[n + 2][UNIT], all[n + 3][TEN]];
         const aSum = aDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
         const bSum = bDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
         const aResult = aSum % 10;
@@ -1290,19 +1293,21 @@ function calcM18(all, startIdx) {
                 rightSum: bSum,
                 rightResult: bResult
             },
+            // Row N+1 TEN is the third A digit (the middle column).
+            // Row N+1 HUNDRED is deliberately not highlighted for M18 A.
             highlights: [
-                {row: n, digit: 0},
-                {row: n, digit: 1},
-                {row: n + 1, digit: 1},
-                {row: n + 1, digit: 2},
-                {row: n + 2, digit: 2},
-                {row: n + 3, digit: 1}
+                {row: n, digit: HUNDRED},
+                {row: n, digit: TEN},
+                {row: n + 1, digit: TEN},
+                {row: n + 1, digit: UNIT},
+                {row: n + 2, digit: UNIT},
+                {row: n + 3, digit: TEN}
             ],
             arrows: [
-                {startRow: n, startDigit: 0, endRow: n, endDigit: 1},
-                {startRow: n, startDigit: 1, endRow: n + 1, endDigit: 1},
-                {startRow: n + 1, startDigit: 2, endRow: n + 2, endDigit: 2},
-                {startRow: n + 2, startDigit: 2, endRow: n + 3, endDigit: 1}
+                {startRow: n, startDigit: HUNDRED, endRow: n, endDigit: TEN},
+                {startRow: n, startDigit: TEN, endRow: n + 1, endDigit: TEN},
+                {startRow: n + 1, startDigit: UNIT, endRow: n + 2, endDigit: UNIT},
+                {startRow: n + 2, startDigit: UNIT, endRow: n + 3, endDigit: TEN}
             ]
         });
     }
