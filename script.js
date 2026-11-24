@@ -1617,12 +1617,12 @@ function analyzeM22New(numbers) {
     let html = '<div class="split-tables">';
     html += renderWithArrows(
         numbers, calcM22New(numbers, 0), 'odd',
-        'M22 (New) Table - Odd (Rows 1 & 3, 3 & 5, 5 & 7...)',
+        'M22-New Table - Odd (Rows 1 & 3, 3 & 5, 5 & 7...)',
         { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
     );
     html += renderWithArrows(
         numbers, calcM22New(numbers, 1), 'even',
-        'M22 (New) Table - Even (Rows 2 & 4, 4 & 6, 6 & 8...)',
+        'M22-New Table - Even (Rows 2 & 4, 4 & 6, 6 & 8...)',
         { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
     );
     html += '</div>';
