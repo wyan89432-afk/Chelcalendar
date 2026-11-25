@@ -2829,8 +2829,8 @@ function calcM39(all, startIdx) {
             ],
             arrows: [
                 {startRow: n, startDigit: TEN, endRow: n, endDigit: UNIT},
-                {startRow: n, startDigit: UNIT, endRow: n + 2, endDigit: UNIT},
-                {startRow: n + 2, startDigit: UNIT, endRow: n, endDigit: TEN}
+                {startRow: n, startDigit: TEN, endRow: n + 2, endDigit: UNIT},
+                {startRow: n, startDigit: UNIT, endRow: n + 2, endDigit: UNIT}
             ]
         });
     }
