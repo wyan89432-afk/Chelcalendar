@@ -40,6 +40,7 @@ const m25Container = document.getElementById('m25Container');
 const m26Container = document.getElementById('m26Container');
 const m27Container = document.getElementById('m27Container');
 const m28Container = document.getElementById('m28Container');
+const m29Container = document.getElementById('m29Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -103,6 +104,7 @@ function analyze() {
     analyzeM26(validNumbers);
     analyzeM27(validNumbers);
     analyzeM28(validNumbers);
+    analyzeM29(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -491,10 +493,11 @@ function calcM13(all, startIdx) {
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
+    const match = title.match(/M(29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
+        29: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row ၂ တန်းကို အသုံးပြုပါတယ်။</strong></p><p><strong>A:</strong> ပထမ Row N ၏ ရာဂဏန်း + ဆယ်ဂဏန်း။ ဒီဂဏန်း ၂ လုံးကို ပေါင်းပြီး နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကို ယူပါတယ်။</p><p><strong>B:</strong> ဒုတိယ Row N+1 ၏ ရာဂဏန်း + ဆယ်ဂဏန်း + ယူနစ်ဂဏန်း။ ဒီဂဏန်း ၃ လုံးကို ပေါင်းပြီး နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကို ယူပါတယ်။ A နဲ့ B ရလဒ်တူညီလျှင် Match ဖြစ်ပါတယ်။ ဥပမာ Row 1 = 392၊ Row 2 = 246 ဖြစ်လျှင် A = 3 + 9 = 12 → 2၊ B = 2 + 4 + 6 = 12 → 2 ဖြစ်လို့ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်တဲ့အခါ A ဘက်ရှိ ရာ + ဆယ်ဂဏန်းကို မျဉ်းတစ်ကြောင်းနဲ့ ဆက်ပါတယ်။ B ဘက်ရှိ ရာ + ဆယ် + ယူနစ်ဂဏန်းကို မျဉ်း ၂ ကြောင်းနဲ့ ဆက်ပါတယ်။ စုစုပေါင်း မျဉ်း ၃ ကြောင်းဖြစ်ပြီး Group တစ်ခုစီကို အရောင်တစ်ရောင်စီ သတ်မှတ်ပါတယ်။ အရောင်ကို Loop လုပ်ပြီး ထပ်နေတဲ့ digit များမှာ သက်ဆိုင်ရာ group အရောင်များကို ပြသပါတယ်။</p><p><strong>Odd:</strong> Row 1–2၊ 3–4၊ 5–6၊ 7–8၊ 9–10…</p><p><strong>Even:</strong> Row 2–3၊ 4–5၊ 6–7၊ 8–9၊ 10–11…</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပြီး နောက် group တစ်ခုစီတွင် စတင် Row ကို ၂ တန်းစီ ရွှေ့ပါတယ်။ Row နှစ်တန်းလုံး ရှိမှသာ အုပ်စုကို တွက်ချက်ပါတယ်။</p>',
         28: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row ၃ တန်း (N, N+1, N+2) ကို အသုံးပြုပါတယ်။ နောက်အုပ်စုသို့ စတင် Row ကို ၅ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>A:</strong> ပထမ Row N ၏ ဆယ်ဂဏန်း + တတိယ Row N+2 ၏ ရာဂဏန်း။</p><p><strong>B:</strong> အလယ် Row N+1 ၏ ရာဂဏန်း + တတိယ Row N+2 ၏ ဆယ်ဂဏန်း။</p><p>A နဲ့ B ကို သီးခြားပေါင်းပြီး 10 ကျော်လျှင် နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ နှစ်ဘက်ရလဒ်တူညီလျှင် Match ဖြစ်ပါတယ်။ ဥပမာ 209၊ 779၊ 700 ဆိုလျှင် A = 0 + 7 = 7၊ B = 7 + 0 = 7 ဖြစ်လို့ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်တဲ့အခါ A အတွဲ (Row N ဆယ်ဂဏန်း → Row N+2 ရာဂဏန်း) ကို မျဉ်းတစ်ကြောင်းနဲ့ ဆက်ပါတယ်။ B အတွဲ (Row N+1 ရာဂဏန်း → Row N+2 ဆယ်ဂဏန်း) ကိုလည်း သီးခြားမျဉ်းတစ်ကြောင်းနဲ့ ဆက်ပါတယ်။ Group တစ်ခုစီကို အရောင်တစ်ရောင်စီ သတ်မှတ်ပြီး အရောင် Loop လုပ်ကာ ဖော်ပြပါတယ်။ ထပ်နေတဲ့ digit တွင် သက်ဆိုင်ရာ group အရောင်များကို ပြသပါတယ်။</p><p><strong>Odd:</strong> Row 1 &amp; 3၊ Row 6 &amp; 8၊ Row 11 &amp; 13၊ Row 16 &amp; 18…</p><p><strong>Even:</strong> Row 2 &amp; 4၊ Row 7 &amp; 9၊ Row 12 &amp; 14၊ Row 17 &amp; 19…</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက် group တစ်ခုစီတွင် စတင် Row ကို ၅ တန်းစီ ရွှေ့ပါတယ်။ Group တစ်ခုတွက်ရန် ကြားရှိ Row အပါအဝင် Row ၃ တန်းလုံး ရှိရပါမယ်။</p>',
         27: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row ၄ တန်း (N, N+1, N+2, N+3) ကို အသုံးပြုပြီး နောက်အုပ်စုသို့ ၅ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>ပေါင်းရမည့် ဂဏန်း ၃ လုံး:</strong> စတင် Row N ၏ ယူနစ်ဂဏန်း + ဒုတိယ Row N+1 ၏ ဆယ်ဂဏန်း + တတိယ Row N+2 ၏ ရာဂဏန်း။</p><p>ဒီဂဏန်း ၃ လုံးကို ပေါင်းပြီး 10 ကျော်လျှင် နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ အဲဒီရလဒ်ကို စတုတ္ထ Row N+3 ၏ ရာဂဏန်းနဲ့ နှိုင်းယှဉ်ပါတယ်။ တူညီလျှင် Match ဖြစ်ပါတယ်။ ဥပမာ Row 1 = 962၊ Row 2 = 044၊ Row 3 = 221၊ Row 4 = 863 ဖြစ်လျှင် 2 + 4 + 2 = 8 ဖြစ်ပြီး Row 4 ရာဂဏန်း 8 နဲ့ တူတဲ့အတွက် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်တဲ့အခါ ပေါင်းရမည့် ဂဏန်း ၃ လုံးကို မျဉ်း ၂ ကြောင်းနဲ့ ဆက်ပါတယ်။ နှိုင်းယှဉ်မည့် စတုတ္ထ Row ရဲ့ ရာဂဏန်းကိုတော့ မျဉ်းမဆက်ဘဲ သက်ဆိုင်ရာ အရောင်တစ်ရောင်တည်းနဲ့ Highlight လုပ်ပါတယ်။ Group တစ်ခုစီကို အရောင် Loop လုပ်ပြီး ဖော်ပြပါတယ်။</p><p><strong>Odd:</strong> Row 1–4၊ Row 6–9၊ Row 11–14၊ Row 16–19…</p><p><strong>Even:</strong> Row 2–5၊ Row 7–10၊ Row 12–15၊ Row 17–20…</p><p>Odd သည် Row 1 မှစပြီး Even သည် Row 2 မှ စပါတယ်။ နောက် Group တစ်ခုစီတွင် စတင် Row ကို ၅ တန်းစီ ရွှေ့ပါတယ်။ Group တစ်ခုတွက်ရန် Row ၄ တန်းလုံး ရှိရပါမယ်။</p>',
         26: '<p><strong>အုပ်စုတစ်ခုစီတွင် ဆက်တိုက် Row ၄ တန်း (N, N+1, N+2, N+3) ကို အသုံးပြုပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ရာဂဏန်း + Row N+1 ၏ ရာဂဏန်း။ ဒီဂဏန်း ၂ လုံးကို ပေါင်းပြီး နောက်ဆုံးယူနစ်ဂဏန်းကို ယူပါတယ်။</p><p><strong>B အုပ်စု:</strong> Row N+2 ၏ ဆယ်ဂဏန်း + Row N+3 ၏ ရာဂဏန်း + Row N+3 ၏ ယူနစ်ဂဏန်း။ ဒီဂဏန်း ၃ လုံးကို ပေါင်းပြီး နောက်ဆုံးယူနစ်ဂဏန်းကို ယူပါတယ်။ A နဲ့ B ရဲ့ နောက်ဆုံးဂဏန်းတူညီလျှင် Match ဖြစ်ပါတယ်။ ဥပမာ 865၊ 356၊ 646၊ 978 ကို သုံးလျှင် A = 8 + 3 = 11 → 1၊ B = 4 + 9 + 8 = 21 → 1 ဖြစ်လို့ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်တဲ့အခါ A ဘက်က Row N ရာဂဏန်းနဲ့ Row N+1 ရာဂဏန်းကို မျဉ်းတစ်ကြောင်းနဲ့ ဆက်ပါတယ်။ B ဘက်က Row N+2 ဆယ်ဂဏန်း၊ Row N+3 ရာဂဏန်း၊ Row N+3 ယူနစ်ဂဏန်းတို့ကို မျဉ်း ၂ ကြောင်းနဲ့ ဆက်ပါတယ်။ စုစုပေါင်း ချိတ်ဆက်မျဉ်း ၃ ကြောင်း ဖြစ်ပါတယ်။ Group တစ်ခုစီကို အရောင်တစ်ရောင်စီ သတ်မှတ်ပြီး loop လုပ်ကာ ဖော်ပြပါတယ်။ Group တွေထပ်နေတဲ့ digit တွင် သက်ဆိုင်ရာ အရောင်များကို ပြသပါတယ်။</p><p><strong>Odd:</strong> Row 1–4 (အစ Row 1၊ အဆုံး Row 4)၊ Row 2–5၊ Row 3–6၊ Row 4–7…</p><p><strong>Even:</strong> Row 2–5 (အစ Row 2၊ အဆုံး Row 5)၊ Row 3–6၊ Row 4–7၊ Row 5–8…</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက် group တစ်ခုစီတွင် စတင် Row ကို ၁ တန်းစီ ရွှေ့ပါတယ်။ Group တစ်ခုတွက်ရန် Row ၄ တန်းလုံး ရှိရပါမယ်။</p>',
@@ -2052,6 +2055,83 @@ function calcM28(all, startIdx) {
             arrows: [
                 {startRow: n, startDigit: TEN, endRow: n + 2, endDigit: HUNDRED},
                 {startRow: n + 1, startDigit: HUNDRED, endRow: n + 2, endDigit: TEN}
+            ]
+        });
+    }
+    return results;
+}
+
+
+// ========== M29 LOGIC ==========
+// A = Row N hundred + Row N tens.
+// B = Row N+1 hundred + tens + unit.
+// Compare A % 10 with B % 10.
+// Odd starts at Row 1; Even starts at Row 2.
+// Each next group advances by two rows.
+function analyzeM29(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM29(numbers, 0),
+        'odd',
+        'M29 Table - Odd (Rows 1–2, 3–4, 5–6, 7–8...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM29(numbers, 1),
+        'even',
+        'M29 Table - Even (Rows 2–3, 4–5, 6–7, 8–9...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m29Container.innerHTML = html;
+}
+
+function calcM29(all, startIdx) {
+    const HUNDRED = 0;
+    const TEN = 1;
+    const UNIT = 2;
+    const results = [];
+
+    for (let n = startIdx; n + 1 < all.length; n += 2) {
+        const aDigits = [all[n][HUNDRED], all[n][TEN]];
+        const bDigits = [all[n + 1][HUNDRED], all[n + 1][TEN], all[n + 1][UNIT]];
+        const aSum = aDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+        const bSum = bDigits.reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+        const aResult = aSum % 10;
+        const bResult = bSum % 10;
+        const isMatch = aResult === bResult;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: `Rows ${n + 1}–${n + 2}`,
+                detailLines: [
+                    `A: Row ${n + 1} Hundred ${aDigits[0]} + Row ${n + 1} Ten ${aDigits[1]} = ${aSum} → ${aResult}`,
+                    `B: Row ${n + 2} Hundred ${bDigits[0]} + Row ${n + 2} Ten ${bDigits[1]} + Row ${n + 2} Unit ${bDigits[2]} = ${bSum} → ${bResult}`,
+                    `A ${aResult} ${isMatch ? '=' : '≠'} B ${bResult} → ${isMatch ? 'MATCH' : 'No match'}`
+                ],
+                leftLabel: 'A',
+                leftDigits: aDigits,
+                leftSum: aSum,
+                leftResult: aResult,
+                rightLabel: 'B',
+                rightDigits: bDigits,
+                rightSum: bSum,
+                rightResult: bResult
+            },
+            highlights: [
+                {row: n, digit: HUNDRED},
+                {row: n, digit: TEN},
+                {row: n + 1, digit: HUNDRED},
+                {row: n + 1, digit: TEN},
+                {row: n + 1, digit: UNIT}
+            ],
+            arrows: [
+                {startRow: n, startDigit: HUNDRED, endRow: n, endDigit: TEN},
+                {startRow: n + 1, startDigit: HUNDRED, endRow: n + 1, endDigit: TEN},
+                {startRow: n + 1, startDigit: TEN, endRow: n + 1, endDigit: UNIT}
             ]
         });
     }
