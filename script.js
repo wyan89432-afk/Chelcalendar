@@ -63,6 +63,7 @@ const m48Container = document.getElementById('m48Container');
 const m49Container = document.getElementById('m49Container');
 const m50Container = document.getElementById('m50Container');
 const m51Container = document.getElementById('m51Container');
+const m52Container = document.getElementById('m52Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -149,6 +150,7 @@ function analyze() {
     analyzeM49(validNumbers);
     analyzeM50(validNumbers);
     analyzeM51(validNumbers);
+    analyzeM52(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -197,6 +199,7 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     
     const colorMap = new Map();
     const arrowData = [];
+    const ovalData = [];
     let colorIdx = 0;
     
     allValidIndices.forEach(checkIndex => {
@@ -225,6 +228,17 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
                 arrowData.push({
                     startRow: a.startRow, startDigit: a.startDigit,
                     endRow: a.endRow, endDigit: a.endDigit,
+                    bar: bar
+                });
+            });
+        }
+
+        // Optional oval outlines are used only by tables that define r.ovals.
+        if (r.ovals) {
+            r.ovals.forEach(o => {
+                ovalData.push({
+                    startRow: o.startRow, startDigit: o.startDigit,
+                    endRow: o.endRow, endDigit: o.endDigit,
                     bar: bar
                 });
             });
@@ -289,6 +303,26 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
             </svg>`;
         });
         
+        // Draw optional oval outlines around paired digits (M52).
+        ovalData.filter(o => o.startRow === i).forEach(oval => {
+            const sx = digitCenterX[oval.startDigit];
+            const sy = ROW_HEIGHT / 2;
+            const ex = digitCenterX[oval.endDigit];
+            const ey = (oval.endRow - oval.startRow) * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const cx = (sx + ex) / 2;
+            const cy = (sy + ey) / 2;
+            const rx = Math.max(31, Math.abs(ex - sx) / 2 + 28);
+            const ry = Math.max(35, Math.abs(ey - sy) / 2 + 23);
+            const svgX = cx - rx;
+            const svgY = cy - ry;
+            const colorHex = getColorHex(oval.bar);
+
+            html += `<svg style="position:absolute;left:${svgX}px;top:${svgY}px;width:${rx * 2}px;height:${ry * 2}px;z-index:4;pointer-events:none;overflow:visible;">
+                <ellipse cx="${rx}" cy="${ry}" rx="${rx - 2}" ry="${ry - 2}"
+                    fill="none" stroke="${colorHex}" stroke-width="3"/>
+            </svg>`;
+        });
+
         html += `</div></div>`;
     }
     
@@ -537,10 +571,11 @@ function calcM13(all, startIdx) {
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
+    const match = title.match(/M(52|51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
+        52: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row N မှ Row N+3 အထိ ၄ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ ထို့ကြောင့် အုပ်စုတစ်ခု၏ နောက်ဆုံး Row သည် နောက်အုပ်စု၏ စတင် Row ဖြစ်ပါတယ်။</strong></p><p><strong>A အုပ်စု (ဘဲဥပုံ):</strong> Row N ၏ ယူနစ်ဂဏန်း + Row N+1 ၏ ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကို သက်ဆိုင်ရာအရောင် ဘဲဥပုံတစ်ခုဖြင့် ဝိုင်းပြပါတယ်။</p><p><strong>B အုပ်စု (မျဉ်း ၃ ကြောင်း):</strong> Row N+1 ၏ ယူနစ်ဂဏန်း + Row N+2 ၏ ဆယ်ဂဏန်း + Row N+3 ၏ ဆယ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ B အုပ်စု၏ ဂဏန်း ၃ လုံးကို အချင်းချင်း မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p>A နှင့် B တို့၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။ Row N+1 Unit သည် A နှင့် B နှစ်အုပ်စုစလုံးတွင် ပါဝင်သော ဂဏန်းဖြစ်ပါတယ်။ Match ဖြစ်ပါက ပါဝင်သော ဂဏန်း ၄ နေရာကို အရောင်တူ Highlight လုပ်ပြီး group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–4 (598၊ 116၊ 690၊ 593):</strong> A = Row 1 Unit 8 + Row 2 Unit 6 = 14 → 4 ဖြစ်ပါတယ်။ B = Row 2 Unit 6 + Row 3 Ten 9 + Row 4 Ten 9 = 24 → 4 ဖြစ်ပါတယ်။ 4 = 4 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–4၊ 4–7၊ 7–10၊ 10–13… (စတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–5၊ 5–8၊ 8–11၊ 11–14… (စတင် Row 2, 5, 8, 11…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N မှ Row N+3 အထိ ၄ တန်းလုံး ရှိရပါမယ်။</p>',
         51: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row N မှ Row N+3 အထိ ၄ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ ထို့ကြောင့် အုပ်စုတစ်ခု၏ နောက်ဆုံး Row သည် နောက်အုပ်စု၏ စတင် Row ဖြစ်ပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ယူနစ်ဂဏန်း + Row N+1 ၏ ရာဂဏန်း + Row N+1 ၏ ဆယ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်လျှင် နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>B အုပ်စု:</strong> Row N+2 ၏ ရာဂဏန်း + Row N+2 ၏ ဆယ်ဂဏန်း + Row N+3 ၏ ရာဂဏန်း။ ဒီပေါင်းလဒ်လည်း 10 ဖြင့်စားပြီး အကြွင်းကိုသာ ယူပါတယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–4 (598၊ 116၊ 690၊ 593):</strong> A = Row 1 Unit 8 + Row 2 Hundred 1 + Row 2 Ten 1 = 10 → 0 ဖြစ်ပါတယ်။ B = Row 3 Hundred 6 + Row 3 Ten 9 + Row 4 Hundred 5 = 20 → 0 ဖြစ်ပါတယ်။ 0 = 0 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။ သတိပြုရန် — 690 ထဲက 6 သည် ရာဂဏန်းဖြစ်ပြီး 9 သည် ဆယ်ဂဏန်းဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက A အုပ်စုရှိ ဂဏန်း ၃ လုံးကို အရောင်တူ Highlight လုပ်ပြီး အချင်းချင်း မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။ B အုပ်စုရှိ ဂဏန်း ၃ လုံးကိုလည်း အရောင်တူ Highlight လုပ်ပြီး မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။ စုစုပေါင်း ဂဏန်း ၆ လုံး Highlight နှင့် မျဉ်း ၆ ကြောင်း ဖြစ်ပါတယ်။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ကာ ပြောင်းလဲသုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1–4၊ 4–7၊ 7–10၊ 10–13… (စတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–5၊ 5–8၊ 8–11၊ 11–14… (စတင် Row 2, 5, 8, 11…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N မှ Row N+3 အထိ ၄ တန်းလုံး ရှိရပါမယ်။</p>',
         50: '<p><strong>အုပ်စုတစ်ခုစီတွင် စတင် Row မှ ၄ တန်းအကွာရှိ Row အထိကို အုပ်စုအမည်အဖြစ် ဖော်ပြပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၄ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N ၏ ယူနစ်ဂဏန်း + Row N+1 ၏ ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>နှိုင်းယှဉ်ရန်:</strong> ပေါင်းလဒ်၏ နောက်ဆုံးဂဏန်းကို Row N+4 ၏ ယူနစ်ဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။ တူညီပါက Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1 &amp; 5 (395၊ 603၊ 626၊ 481၊ 598):</strong> Row 1 Unit 5 + Row 2 Unit 3 = 8 ဖြစ်ပါတယ်။ Row 5 Unit 8 ဖြစ်တဲ့အတွက် 8 = 8၊ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက ပေါင်းထားသော Row N Unit နှင့် Row N+1 Unit၊ နှိုင်းယှဉ်ထားသော Row N+4 Unit စုစုပေါင်း ဂဏန်း ၃ လုံးကို Highlight လုပ်ပါတယ်။ မျဉ်းတစ်ကြောင်းကို ပေါင်းထားသော ဂဏန်း ၂ လုံးကြားတွင်သာ ဆွဲပြီး တစ်လုံးတည်းဖြစ်သော နှိုင်းယှဉ်ဂဏန်းကို မျဉ်းမဆွဲပါ။ အရောင်ကို Match အုပ်စုတစ်ခုစီအလိုက် Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1 &amp; 5၊ 5 &amp; 9၊ 9 &amp; 13၊ 13 &amp; 17… (စတင် Row 1, 5, 9, 13…)</p><p><strong>Even:</strong> Rows 2 &amp; 6၊ 6 &amp; 10၊ 10 &amp; 14၊ 14 &amp; 18… (စတင် Row 2, 6, 10, 14…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N၊ Row N+1 နှင့် Row N+4 တို့ရှိရပါမယ်။ နောက်အုပ်စု၏ စတင် Row သည် ယခင်အုပ်စု၏ နှိုင်းယှဉ် Row နှင့် တူညီပါတယ်။</p>',
         49: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row ၅ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၅ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ရာဂဏန်း + Row N ၏ ယူနစ်ဂဏန်း + Row N+1 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>B အုပ်စု:</strong> Row N+2 ၏ ဆယ်ဂဏန်း + Row N+3 ၏ ဆယ်ဂဏန်း + Row N+4 ၏ ရာဂဏန်း။ ဒီပေါင်းလဒ်လည်း 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–5 (626၊ 481၊ 598၊ 116၊ 690):</strong> A = Row 1 Hundred 6 + Row 1 Unit 6 + Row 2 Hundred 4 = 16 → 6 ဖြစ်ပါတယ်။ B = Row 3 Ten 9 + Row 4 Ten 1 + Row 5 Hundred 6 = 16 → 6 ဖြစ်ပါတယ်။ 6 = 6 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက A အုပ်စုရှိ ဂဏန်း ၃ လုံးနှင့် B အုပ်စုရှိ ဂဏန်း ၃ လုံး၊ စုစုပေါင်း ၆ လုံးကို အရောင်တူ Highlight လုပ်ပါတယ်။ အုပ်စုတစ်ခုစီရှိ ဂဏန်း ၃ လုံးကို အချင်းချင်း ချိတ်ဆက်ရန် မျဉ်း ၃ ကြောင်းစီ ဆွဲပြီး A နှင့် B အတွက် စုစုပေါင်း မျဉ်း ၆ ကြောင်း ဖြစ်ပါတယ်။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ကာ ပြောင်းလဲသုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1–5၊ 6–10၊ 11–15၊ 16–20… (စတင် Row 1, 6, 11, 16…)</p><p><strong>Even:</strong> Rows 2–6၊ 7–11၊ 12–16၊ 17–21… (စတင် Row 2, 7, 12, 17…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုကို တွက်ရန် သတ်မှတ်ထားသော Row ၅ တန်းလုံး ရှိရပါမယ်။</p>',
@@ -3761,6 +3796,89 @@ function calcM51(all, startIdx) {
                 {startRow: n + 2, startDigit: HUNDRED, endRow: n + 2, endDigit: TEN},
                 {startRow: n + 2, startDigit: HUNDRED, endRow: n + 3, endDigit: HUNDRED},
                 {startRow: n + 2, startDigit: TEN, endRow: n + 3, endDigit: HUNDRED}
+            ]
+        });
+    }
+    return results;
+}
+
+
+// ========== M52 LOGIC ==========
+// A = Row N Unit + Row N+1 Unit.
+// B = Row N+1 Unit + Row N+2 Ten + Row N+3 Ten.
+// Compare A % 10 and B % 10.
+// Odd starts at Rows 1, 4, 7, 10...; Even starts at Rows 2, 5, 8, 11...
+function analyzeM52(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM52(numbers, 0),
+        'odd',
+        'M52 Table - Odd (Rows 1–4, 4–7, 7–10, 10–13...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM52(numbers, 1),
+        'even',
+        'M52 Table - Even (Rows 2–5, 5–8, 8–11, 11–14...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m52Container.innerHTML = html;
+}
+
+function calcM52(all, startIdx) {
+    const TEN = 1, UNIT = 2;
+    const results = [];
+
+    // Four rows per group; advance three rows so groups overlap by one row.
+    for (let n = startIdx; n + 3 < all.length; n += 3) {
+        const aDigits = [all[n][UNIT], all[n + 1][UNIT]];
+        const bDigits = [all[n + 1][UNIT], all[n + 2][TEN], all[n + 3][TEN]];
+        const aSum = aDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const bSum = bDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const aResult = aSum % 10;
+        const bResult = bSum % 10;
+        const isMatch = aResult === bResult;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: 'Rows ' + (n + 1) + '–' + (n + 4),
+                detailLines: [
+                    'A အုပ်စု: Row ' + (n + 1) + ' Unit ' + aDigits[0] +
+                        ' + Row ' + (n + 2) + ' Unit ' + aDigits[1] +
+                        ' = ' + aSum + ' → ' + aResult,
+                    'B အုပ်စု: Row ' + (n + 2) + ' Unit ' + bDigits[0] +
+                        ' + Row ' + (n + 3) + ' Ten ' + bDigits[1] +
+                        ' + Row ' + (n + 4) + ' Ten ' + bDigits[2] +
+                        ' = ' + bSum + ' → ' + bResult,
+                    'A ' + aResult + (isMatch ? ' = ' : ' ≠ ') + 'B ' + bResult +
+                        ' → ' + (isMatch ? 'MATCH' : 'No match')
+                ],
+                leftLabel: 'A',
+                leftDigits: aDigits,
+                leftSum: aSum,
+                leftResult: aResult,
+                rightLabel: 'B',
+                rightDigits: bDigits,
+                rightSum: bSum,
+                rightResult: bResult
+            },
+            highlights: [
+                {row: n, digit: UNIT},
+                {row: n + 1, digit: UNIT},
+                {row: n + 2, digit: TEN},
+                {row: n + 3, digit: TEN}
+            ],
+            ovals: [
+                {startRow: n, startDigit: UNIT, endRow: n + 1, endDigit: UNIT}
+            ],
+            arrows: [
+                {startRow: n + 1, startDigit: UNIT, endRow: n + 2, endDigit: TEN},
+                {startRow: n + 1, startDigit: UNIT, endRow: n + 3, endDigit: TEN},
+                {startRow: n + 2, startDigit: TEN, endRow: n + 3, endDigit: TEN}
             ]
         });
     }
