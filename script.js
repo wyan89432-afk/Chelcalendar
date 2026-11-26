@@ -60,6 +60,7 @@ const m45Container = document.getElementById('m45Container');
 const m46Container = document.getElementById('m46Container');
 const m47Container = document.getElementById('m47Container');
 const m48Container = document.getElementById('m48Container');
+const m49Container = document.getElementById('m49Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -143,6 +144,7 @@ function analyze() {
     analyzeM46(validNumbers);
     analyzeM47(validNumbers);
     analyzeM48(validNumbers);
+    analyzeM49(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -531,10 +533,11 @@ function calcM13(all, startIdx) {
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
+    const match = title.match(/M(49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
+        49: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row ၅ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၅ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ရာဂဏန်း + Row N ၏ ယူနစ်ဂဏန်း + Row N+1 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>B အုပ်စု:</strong> Row N+2 ၏ ဆယ်ဂဏန်း + Row N+3 ၏ ဆယ်ဂဏန်း + Row N+4 ၏ ရာဂဏန်း။ ဒီပေါင်းလဒ်လည်း 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–5 (626၊ 481၊ 598၊ 116၊ 690):</strong> A = Row 1 Hundred 6 + Row 1 Unit 6 + Row 2 Hundred 4 = 16 → 6 ဖြစ်ပါတယ်။ B = Row 3 Ten 9 + Row 4 Ten 1 + Row 5 Hundred 6 = 16 → 6 ဖြစ်ပါတယ်။ 6 = 6 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက A အုပ်စုရှိ ဂဏန်း ၃ လုံးနှင့် B အုပ်စုရှိ ဂဏန်း ၃ လုံး၊ စုစုပေါင်း ၆ လုံးကို အရောင်တူ Highlight လုပ်ပါတယ်။ အုပ်စုတစ်ခုစီရှိ ဂဏန်း ၃ လုံးကို အချင်းချင်း ချိတ်ဆက်ရန် မျဉ်း ၃ ကြောင်းစီ ဆွဲပြီး A နှင့် B အတွက် စုစုပေါင်း မျဉ်း ၆ ကြောင်း ဖြစ်ပါတယ်။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ကာ ပြောင်းလဲသုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1–5၊ 6–10၊ 11–15၊ 16–20… (စတင် Row 1, 6, 11, 16…)</p><p><strong>Even:</strong> Rows 2–6၊ 7–11၊ 12–16၊ 17–21… (စတင် Row 2, 7, 12, 17…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုကို တွက်ရန် သတ်မှတ်ထားသော Row ၅ တန်းလုံး ရှိရပါမယ်။</p>',
         48: '<p><strong>အုပ်စုစတင် Row မှစ၍ ၃ တန်းစီ ခွဲပါတယ်။ တွက်ချက်ရာတွင် စတင် Row နှင့် နောက်တစ် Row ကိုသာ အသုံးပြုပြီး တတိယ Row ကို မတွက်ပါ။ နောက်ဆုံးအုပ်စုတွင် စတင် Row နှင့် နှိုင်းယှဉ်မည့် နောက်တစ် Row ရှိရုံဖြင့် တွက်ချက်နိုင်ပြီး တတိယ Row မရှိလည်း ရပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> စတင် Row ၏ ဆယ်ဂဏန်း + စတင် Row ၏ ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>နှိုင်းယှဉ်အုပ်စု:</strong> နောက်တစ်တန်း၏ ယူနစ်ဂဏန်း တစ်လုံးတည်းကို ယူပါတယ်။ ပထမပေါင်းလဒ်၏ နောက်ဆုံးဂဏန်းနှင့် တူညီပါက Match ဖြစ်ပါတယ်။ တစ်လုံးတည်းအုပ်စုကို မျဉ်းမဆွဲပါ။</p><p><strong>ဥပမာ Rows 1–3 (221၊ 843၊ 863):</strong> Row 1 Ten 2 + Row 1 Unit 1 = 3 ဖြစ်ပါတယ်။ Row 2 Unit 3 ဖြစ်တဲ့အတွက် 3 = 3၊ Match ဖြစ်ပါတယ်။ Row 3 ကို မတွက်ပါ။</p><p>Match ဖြစ်ပါက စတင် Row ၏ ဆယ်ဂဏန်းနှင့် ယူနစ်ဂဏန်း ၂ လုံး၊ နှိုင်းယှဉ်ထားသော နောက် Row ၏ ယူနစ်ဂဏန်း ၁ လုံး စုစုပေါင်း ၃ လုံးကို Highlight လုပ်ပါတယ်။ မျဉ်းကို စတင် Row ရှိ ပေါင်းထားသော ဂဏန်း ၂ လုံးကြားတွင်သာ ဆွဲပါတယ်။ နှိုင်းယှဉ်ဂဏန်းကို မျဉ်းဖြင့် မချိတ်ပါ။ အရောင်ကို Match အုပ်စုတစ်ခုစီအလိုက် Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12… (တွက်ချက်မှုစတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13… (တွက်ချက်မှုစတင် Row 2, 5, 8, 11…)</p>',
         47: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row N၊ Row N+1၊ Row N+2 ဟူသော Row ၃ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ရာဂဏန်း + Row N+1 ၏ ဆယ်ဂဏန်း + Row N+2 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>B အုပ်စု:</strong> Row N ၏ ဆယ်ဂဏန်း + Row N+1 ၏ ရာဂဏန်း + Row N+2 ၏ ဆယ်ဂဏန်း။ ဒီပေါင်းလဒ်လည်း 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ A နှင့် B ၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–3 (044၊ 221၊ 843):</strong> A = Row 1 Hundred 0 + Row 2 Ten 2 + Row 3 Hundred 8 = 10 → 0 ဖြစ်ပါတယ်။ B = Row 1 Ten 4 + Row 2 Hundred 2 + Row 3 Ten 4 = 10 → 0 ဖြစ်လို့ 0 = 0၊ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက A အုပ်စုရှိ ဂဏန်း ၃ လုံးကို ဒေါင်လိုက်မျဉ်းမပါဘဲ စောင်းမျဉ်း ၂ ကြောင်းဖြင့် ချိတ်ပါတယ်။ B အုပ်စုရှိ ဂဏန်း ၃ လုံးကိုလည်း ဒေါင်လိုက်မျဉ်းမပါဘဲ စောင်းမျဉ်း ၂ ကြောင်းဖြင့် ချိတ်ပါတယ်။ စုစုပေါင်း စောင်းမျဉ်း ၄ ကြောင်းသာ ဖြစ်ပါတယ်။ အသုံးပြုထားသော ဂဏန်း ၆ လုံးလုံးကို အရောင်တူ Highlight လုပ်ပြီး အုပ်စုတစ်ခုစီ၏ အရောင်ကို Loop လုပ်ကာ ပြောင်းလဲသုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12၊ 13–15… (စတင် Row 1, 4, 7, 10, 13…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13၊ 14–16… (စတင် Row 2, 5, 8, 11, 14…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက် group တစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ Group တစ်ခုတွက်ရန် Row ၃ တန်းလုံး ရှိရပါမယ်။</p>',
         46: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row N၊ Row N+1၊ Row N+2 ဟူသော Row ၃ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၂ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>A အုပ်စု:</strong> Row N ၏ ဆယ်ဂဏန်း + Row N+2 ၏ ရာဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>နှိုင်းယှဉ်ရန်:</strong> A ၏ နောက်ဆုံးဂဏန်းကို Row N+1 ၏ ဆယ်ဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။ တူညီမှသာ Match ဖြစ်ပါတယ်။ ဥပမာ Rows 1–3 (665၊ 962၊ 044) တွင် A = Row 1 Ten 6 + Row 3 Hundred 0 = 6 ဖြစ်ပြီး Row 2 Ten သည် 6 ဖြစ်သောကြောင့် 6 = 6၊ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက A အုပ်စုရှိ ဂဏန်း ၂ လုံး (Row N Ten နှင့် Row N+2 Hundred) ကို မျဉ်း ၁ ကြောင်းဖြင့် ဆက်ပါတယ်။ နှိုင်းယှဉ်ရန်အသုံးပြုသော Row N+1 Ten သည် ဂဏန်းတစ်လုံးတည်းဖြစ်သောကြောင့် Highlight သာလုပ်ပြီး မျဉ်းမဆွဲပါ။ ဂဏန်း ၃ လုံးလုံးကို အရောင်တူ Highlight လုပ်ပြီး အုပ်စုတစ်ခုစီ၏ အရောင်ကို Loop လုပ်ကာ ပြောင်းလဲသုံးပါတယ်။</p><p><strong>Odd:</strong> Row 1–3၊ Row 3–5၊ Row 5–7၊ Row 7–9၊ Row 9–11… (စတင် Row 1, 3, 5, 7, 9…)</p><p><strong>Even:</strong> Row 2–4၊ Row 4–6၊ Row 6–8၊ Row 8–10၊ Row 10–12… (စတင် Row 2, 4, 6, 8, 10…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက် group တစ်ခုစီတွင် စတင် Row ကို ၂ တန်းစီ ရွှေ့ပါတယ်။ Group တစ်ခုတွက်ရန် Row ၃ တန်းလုံး ရှိရပါမယ်။',
@@ -3500,6 +3503,95 @@ function calcM48(all, startIdx) {
             ],
             arrows: [
                 {startRow: n, startDigit: TEN, endRow: n, endDigit: UNIT}
+            ]
+        });
+    }
+    return results;
+}
+
+
+// ========== M49 LOGIC ==========
+// Each M49 group uses five rows.
+// A = Row N Hundred + Row N Unit + Row N+1 Hundred.
+// B = Row N+2 Ten + Row N+3 Ten + Row N+4 Hundred.
+// Compare the final digits of A and B (sum % 10).
+// Odd starts at Rows 1, 6, 11...; Even starts at Rows 2, 7, 12...
+function analyzeM49(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM49(numbers, 0),
+        'odd',
+        'M49 Table - Odd (Rows 1–5, 6–10, 11–15, 16–20...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM49(numbers, 1),
+        'even',
+        'M49 Table - Even (Rows 2–6, 7–11, 12–16, 17–21...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m49Container.innerHTML = html;
+}
+
+function calcM49(all, startIdx) {
+    const HUNDRED = 0, TEN = 1, UNIT = 2;
+    const results = [];
+
+    // Advance five rows per group; only complete five-row groups are calculated.
+    for (let n = startIdx; n + 4 < all.length; n += 5) {
+        const aDigits = [all[n][HUNDRED], all[n][UNIT], all[n + 1][HUNDRED]];
+        const bDigits = [all[n + 2][TEN], all[n + 3][TEN], all[n + 4][HUNDRED]];
+        const aSum = aDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const bSum = bDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const aResult = aSum % 10;
+        const bResult = bSum % 10;
+        const isMatch = aResult === bResult;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: 'Rows ' + (n + 1) + '–' + (n + 5),
+                detailLines: [
+                    'A အုပ်စု: Row ' + (n + 1) + ' Hundred ' + aDigits[0] +
+                        ' + Row ' + (n + 1) + ' Unit ' + aDigits[1] +
+                        ' + Row ' + (n + 2) + ' Hundred ' + aDigits[2] +
+                        ' = ' + aSum + ' → ' + aResult,
+                    'B အုပ်စု: Row ' + (n + 3) + ' Ten ' + bDigits[0] +
+                        ' + Row ' + (n + 4) + ' Ten ' + bDigits[1] +
+                        ' + Row ' + (n + 5) + ' Hundred ' + bDigits[2] +
+                        ' = ' + bSum + ' → ' + bResult,
+                    'A ' + aResult + (isMatch ? ' = ' : ' ≠ ') + 'B ' + bResult +
+                        ' → ' + (isMatch ? 'MATCH' : 'No match')
+                ],
+                leftLabel: 'A',
+                leftDigits: aDigits,
+                leftSum: aSum,
+                leftResult: aResult,
+                rightLabel: 'B',
+                rightDigits: bDigits,
+                rightSum: bSum,
+                rightResult: bResult
+            },
+            highlights: [
+                {row: n, digit: HUNDRED},
+                {row: n, digit: UNIT},
+                {row: n + 1, digit: HUNDRED},
+                {row: n + 2, digit: TEN},
+                {row: n + 3, digit: TEN},
+                {row: n + 4, digit: HUNDRED}
+            ],
+            arrows: [
+                // A group: connect all three digits with three lines.
+                {startRow: n, startDigit: HUNDRED, endRow: n, endDigit: UNIT},
+                {startRow: n, startDigit: HUNDRED, endRow: n + 1, endDigit: HUNDRED},
+                {startRow: n, startDigit: UNIT, endRow: n + 1, endDigit: HUNDRED},
+                // B group: connect all three digits with three lines.
+                {startRow: n + 2, startDigit: TEN, endRow: n + 3, endDigit: TEN},
+                {startRow: n + 2, startDigit: TEN, endRow: n + 4, endDigit: HUNDRED},
+                {startRow: n + 3, startDigit: TEN, endRow: n + 4, endDigit: HUNDRED}
             ]
         });
     }
