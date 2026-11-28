@@ -760,7 +760,7 @@ function calcM64(all, startIdx) {
             ],
             arrows: [
                 // Only the two digits in the sum are connected.
-                {startRow: n, startDigit: HUNDRED, endRow: n, endDigit: UNIT}
+                {startRow: n, startDigit: HUNDRED, endRow: n, endDigit: UNIT, curveAroundMiddle: true}
             ]
         });
     }
@@ -894,7 +894,34 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
             const ex = digitCenterX[arrow.endDigit];
             const ey = (arrow.endRow - arrow.startRow) * ROW_HEIGHT + ROW_HEIGHT / 2;
             const colorHex = getColorHex(arrow.bar);
-            
+
+            // M64 uses a curved connector to bypass the Ten digit while linking Hundred to Unit.
+            if (arrow.curveAroundMiddle) {
+                const svgW = Math.abs(ex - sx) + 20;
+                const svgH = 80;
+                const svgX = Math.min(sx, ex) - 10;
+                const svgY = sy - 70;
+                const lx1 = sx - svgX, ly1 = 70;
+                const lx2 = ex - svgX, ly2 = 70;
+                const controlX = (lx1 + lx2) / 2;
+                const controlY = 10;
+                const dx = lx2 - controlX, dy = ly2 - controlY;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                if (len === 0) return;
+                const nx2 = dx / len, ny2 = dy / len;
+                const arrowSize = 6;
+                const ax = lx2 - nx2 * arrowSize, ay = ly2 - ny2 * arrowSize;
+                const p1x = ax - ny2 * arrowSize * 0.4, p1y = ay + nx2 * arrowSize * 0.4;
+                const p2x = ax + ny2 * arrowSize * 0.4, p2y = ay - nx2 * arrowSize * 0.4;
+
+                html += `<svg style="position:absolute;left:${svgX}px;top:${svgY}px;width:${svgW}px;height:${svgH}px;z-index:3;pointer-events:none;overflow:visible;">
+                    <path d="M ${lx1} ${ly1} Q ${controlX} ${controlY} ${lx2} ${ly2}"
+                        fill="none" stroke="${colorHex}" stroke-width="2.5" stroke-linecap="round"/>
+                    <polygon points="${lx2},${ly2} ${p1x},${p1y} ${p2x},${p2y}" fill="${colorHex}"/>
+                </svg>`;
+                return;
+            }
+
             const svgW = Math.abs(ex - sx) + 20;
             const svgH = ey - sy + 20;
             const svgX = Math.min(sx, ex) - 10;
@@ -1189,7 +1216,7 @@ function getTableLogicGuide(title) {
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
-        64: '<p><strong>M64 တွင် Row တစ်တန်းစီကို သီးခြားအုပ်စုတစ်ခုအဖြစ် စစ်ဆေးပြီး Odd နှင့် Even ကို သီးခြားတွက်ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N ၏ Hundred digit + ထို Row ၏ Unit digit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကို မျဉ်းတစ်ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>နှိုင်းယှဉ်အုပ်စု:</strong> Row N ၏ Ten digit တစ်လုံးတည်းကို ယူပါတယ်။ ဒီဂဏန်းကို သီးခြား Highlight လုပ်ပြီး မျဉ်းမဆွဲပါ။ ပေါင်းအုပ်စု၏ နောက်ဆုံးဂဏန်းနှင့် Ten digit တူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Row 1 (077):</strong> Hundred 0 + Unit 7 = 7။ Ten digit = 7 ဖြစ်သောကြောင့် 7 = 7၊ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက Hundred နှင့် Unit ကို အရောင်တူ Highlight လုပ်ပြီး မျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။ Ten digit ကိုလည်း ထို Match ၏ သက်ဆိုင်ရာအရောင်ဖြင့် သီးခြား Highlight လုပ်ပါတယ်။ Match တစ်ခုစီ၏ အရောင်ကို Loop လုပ်သုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1၊ 3၊ 5၊ 7၊ 9… (စတင် Row 1 မှ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။)</p><p><strong>Even:</strong> Rows 2၊ 4၊ 6၊ 8၊ 10… (စတင် Row 2 မှ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။)</p><p>Row တစ်တန်းချင်းစီကို သီးခြားစစ်ဆေးပြီး Row N မှ Row N+2 သို့မဟုတ် အခြား Row များနှင့် ဂဏန်းများကို ပေါင်းစပ်မထားပါ။</p>',
+        64: '<p><strong>M64 တွင် Row တစ်တန်းစီကို သီးခြားအုပ်စုတစ်ခုအဖြစ် စစ်ဆေးပြီး Odd နှင့် Even ကို သီးခြားတွက်ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N ၏ Hundred digit + ထို Row ၏ Unit digit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကို Ten digit ကို မထိအောင် အပေါ်ဘက်မှ ကွေ့ပတ်ပြီး မျဉ်းတစ်ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>နှိုင်းယှဉ်အုပ်စု:</strong> Row N ၏ Ten digit တစ်လုံးတည်းကို ယူပါတယ်။ ဒီဂဏန်းကို သီးခြား Highlight လုပ်ပြီး မျဉ်းမဆွဲပါ။ ပေါင်းအုပ်စု၏ နောက်ဆုံးဂဏန်းနှင့် Ten digit တူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Row 1 (077):</strong> Hundred 0 + Unit 7 = 7။ Ten digit = 7 ဖြစ်သောကြောင့် 7 = 7၊ Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက Hundred နှင့် Unit ကို အရောင်တူ Highlight လုပ်ပြီး မျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။ Ten digit ကိုလည်း ထို Match ၏ သက်ဆိုင်ရာအရောင်ဖြင့် သီးခြား Highlight လုပ်ပါတယ်။ Match တစ်ခုစီ၏ အရောင်ကို Loop လုပ်သုံးပါတယ်။</p><p><strong>Odd:</strong> Rows 1၊ 3၊ 5၊ 7၊ 9… (စတင် Row 1 မှ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။)</p><p><strong>Even:</strong> Rows 2၊ 4၊ 6၊ 8၊ 10… (စတင် Row 2 မှ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။)</p><p>Row တစ်တန်းချင်းစီကို သီးခြားစစ်ဆေးပြီး Row N မှ Row N+2 သို့မဟုတ် အခြား Row များနှင့် ဂဏန်းများကို ပေါင်းစပ်မထားပါ။</p>',
         63: '<p><strong>M63 တွင် အုပ်စုတစ်ခုစီအတွက် Row ၅ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၅ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပထမပေါင်းအုပ်စု:</strong> Row N Unit + Row N+1 Unit + Row N+2 Unit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၃ လုံးကို မျဉ်း ၃ ကြောင်းဖြင့် သီးခြားချိတ်ပါတယ်။</p><p><strong>ဒုတိယပေါင်းအုပ်စု:</strong> Row N Hundred + Row N+3 Ten + Row N+4 Unit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၃ လုံးကိုလည်း မျဉ်း ၃ ကြောင်းဖြင့် သီးခြားချိတ်ပါတယ်။ ပထမနှင့် ဒုတိယပေါင်းအုပ်စုကို အချင်းချင်း မချိတ်ဆက်ပါ။ ရလဒ်နှစ်ခုတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–5 (972၊ 629၊ 563၊ 866၊ 009):</strong> ပထမပေါင်း = 2 + 9 + 3 = 14 → 4။ ဒုတိယပေါင်း = 9 + 6 + 9 = 24 → 4။ 4 = 4 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက ဂဏန်း ၆ နေရာလုံးကို Group တစ်ခုစီအလိုက် သက်ဆိုင်ရာအရောင်ဖြင့် Highlight လုပ်ပြီး အရောင်ကို Loop လုပ်ပါတယ်။ Group တစ်ခုစီအတွင်း မျဉ်း ၃ ကြောင်းစီသာ ဆွဲပြီး Group နှစ်ခုကြား မျဉ်းမဆက်ပါ။</p><p><strong>Odd:</strong> Rows 1–5၊ 6–10၊ 11–15၊ 16–20…</p><p><strong>Even:</strong> Rows 2–6၊ 7–11၊ 12–16၊ 17–21…</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုစီတွင် Row N မှ Row N+4 အထိ အသုံးပြုပြီး နောက်အုပ်စုကို ၅ Row စီ ရွှေ့တွက်ပါတယ်။</p>',
         62: '<p><strong>M62 တွင် အုပ်စုတစ်ခုစီအတွက် Row ၆ တန်းကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၄ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပထမပေါင်းအုပ်စု:</strong> Row N Unit + Row N+1 Ten + Row N+1 Unit + Row N+2 Hundred + Row N+2 Ten + Row N+3 Hundred ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဂဏန်း ၆ လုံးကို အစဉ်လိုက် မျဉ်း ၅ ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>ဒုတိယပေါင်းအုပ်စု:</strong> Row N+2 Unit + Row N+3 Ten + Row N+3 Unit + Row N+4 Hundred + Row N+4 Ten + Row N+5 Hundred ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၆ လုံးကိုလည်း သီးခြား မျဉ်း ၅ ကြောင်းဖြင့် ချိတ်ပါတယ်။ ပထမနှင့် ဒုတိယပေါင်းအုပ်စုကို ဖြတ်ပြီး မချိတ်ဆက်ပါ။ ရလဒ်နှစ်ခုတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1 & 6 (866၊ 009၊ 514၊ 612၊ 077၊ 387):</strong> ပထမပေါင်း = 6 + 0 + 9 + 5 + 1 + 6 = 27 → 7။ ဒုတိယပေါင်း = 4 + 1 + 2 + 0 + 7 + 3 = 17 → 7။ 7 = 7 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက ဂဏန်း ၁၂ နေရာလုံးကို အုပ်စုတစ်ခုစီအလိုက် သက်ဆိုင်ရာအရောင်ဖြင့် Highlight လုပ်ပြီး အရောင်ကို Loop လုပ်ပါတယ်။ ပေါင်းအုပ်စုတစ်ခုစီအတွင်း ဂဏန်း ၆ လုံးကို မျဉ်း ၅ ကြောင်းဖြင့်သာ ချိတ်ပြီး အုပ်စုနှစ်ခုကို မဆက်သွယ်ပါ။</p><p><strong>Odd:</strong> Rows 1 & 6၊ 5 & 10၊ 9 & 14၊ 13 & 18… (စတင် Row 1, 5, 9, 13…)</p><p><strong>Even:</strong> Rows 2 & 7၊ 6 & 11၊ 10 & 15၊ 14 & 19… (စတင် Row 2, 6, 10, 14…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုစီတွင် Row N မှ Row N+5 အထိ သုံးပြီး နောက်အုပ်စုကို ၄ Row စီ ရွှေ့တွက်ပါတယ်။</p>',
         61: '<p><strong>M61 တွင် Row ၃ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၃ Row စီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N ၏ Hundred + Row N ၏ Ten + Row N+1 ၏ Hundred ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံး Unit digit (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၃ လုံးကို မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>နှိုင်းယှဉ်ဂဏန်း:</strong> Row N+2 ၏ Unit digit တစ်လုံးတည်းကို ယူပါတယ်။ ပေါင်းအုပ်စု၏ နောက်ဆုံးဂဏန်းနှင့် တူညီမှ Match ဖြစ်ပါတယ်။ ဒီဂဏန်းတစ်လုံးကို သီးခြား Highlight လုပ်ပြီး ပေါင်းအုပ်စုနှင့် မျဉ်းမချိတ်ပါ။</p><p><strong>ဥပမာ Rows 1–3 (866၊ 009၊ 514):</strong> ပေါင်းအုပ်စု = Row 1 Hundred 8 + Row 1 Ten 6 + Row 2 Hundred 0 = 14 → 4။ နှိုင်းယှဉ်ဂဏန်း = Row 3 Unit 4။ 4 = 4 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက ပေါင်းအုပ်စုရှိ ဂဏန်း ၃ နေရာနှင့် နှိုင်းယှဉ်ဂဏန်း ၁ နေရာကို အရောင်တူ Highlight လုပ်ပါတယ်။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။ မျဉ်း ၃ ကြောင်းကို ပေါင်းအုပ်စု ၃ လုံးအတွင်းသာ ဆွဲပြီး နှိုင်းယှဉ်ဂဏန်းကို မချိတ်ပါ။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12… (စတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13… (စတင် Row 2, 5, 8, 11…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ Row N မှ Row N+2 အထိ သုံးတန်းလုံးရှိမှ တွက်ချက်နိုင်ပါတယ်။</p>',
