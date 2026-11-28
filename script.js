@@ -67,6 +67,7 @@ const m52Container = document.getElementById('m52Container');
 const m53Container = document.getElementById('m53Container');
 const m54Container = document.getElementById('m54Container');
 const m55Container = document.getElementById('m55Container');
+const m56Container = document.getElementById('m56Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -157,6 +158,7 @@ function analyze() {
     analyzeM53(validNumbers);
     analyzeM54(validNumbers);
     analyzeM55(validNumbers);
+    analyzeM56(validNumbers);
 }
 
 // ========== UTILITIES ==========
@@ -577,10 +579,12 @@ function calcM13(all, startIdx) {
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(55|54|53|52|51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
+    const match = title.match(/M(56|55|54|53|52|51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
+        56: '<p><strong>M56 တွင် Row ၃ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၃ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N+1 ၏ Ten + Row N+1 ၏ Unit + Row N+2 ၏ Unit ကို ပေါင်းပါတယ်။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၃ လုံးကို အချင်းချင်း မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>နှိုင်းယှဉ်ဂဏန်း:</strong> Row N ၏ Ten digit တစ်လုံးတည်းကို ယူပြီး ပေါင်းအုပ်စု၏ နောက်ဆုံးဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။ တူညီမှ Match ဖြစ်ပါတယ်။ နှိုင်းယှဉ်ဂဏန်းကို သီးခြား Highlight လုပ်ပြီး ပေါင်းအုပ်စုနှင့် မျဉ်းမချိတ်ပါ။</p><p><strong>ဥပမာ Rows 1–3 (612၊ 077၊ 387):</strong> ပေါင်းအုပ်စု = Row 2 Ten 7 + Row 2 Unit 7 + Row 3 Unit 7 = 21 → 1 ဖြစ်ပါတယ်။ နှိုင်းယှဉ်ဂဏန်း = Row 1 Ten 1 ဖြစ်ပါတယ်။ 1 = 1 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။ Row 2 Ten၊ Row 2 Unit၊ Row 3 Unit သုံးလုံးကို မျဉ်း ၃ ကြောင်းနဲ့ ချိတ်ပြီး Row 1 Ten 1 ကိုတော့ သီးခြား Highlight လုပ်ပါတယ်။</p><p>Match ဖြစ်ပါက အသုံးပြုထားသော ဂဏန်း ၄ နေရာလုံးကို အုပ်စုတစ်ခုတည်း၏ အရောင်ဖြင့် Highlight လုပ်ပါတယ်။ ပေါင်းအုပ်စု ဂဏန်း ၃ လုံးသာ မျဉ်းဆွဲပြီး နှိုင်းယှဉ်ဂဏန်းတစ်လုံးကို မျဉ်းမဆွဲပါ။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12… (နှိုင်းယှဉ် Row စတင်ရာ 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13… (နှိုင်းယှဉ် Row စတင်ရာ 2, 5, 8, 11…)</p><p>Odd သည် Row 1 Ten မှ၊ Even သည် Row 2 Ten မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N၊ Row N+1၊ Row N+2 သုံးတန်းလုံး ရှိရပါမယ်။</p>',
+
         55: '<p><strong>M55 တွင် Row ၂ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပထမပေါင်းအုပ်စု:</strong> အုပ်စုစတင် Row ၏ Hundred + Ten ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>ဒုတိယပေါင်းအုပ်စု:</strong> အုပ်စုစတင် Row ၏ Unit + နောက်တစ် Row ၏ Unit ကို ပေါင်းပါတယ်။ ဒီပေါင်းလဒ်လည်း 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ပေါင်းလဒ်နှစ်ခု၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–2 (184၊ 495):</strong> ပထမအုပ်စု = Row 1 Hundred 1 + Row 1 Ten 8 = 9။ ဒုတိယအုပ်စု = Row 1 Unit 4 + Row 2 Unit 5 = 9။ 9 = 9 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက အသုံးပြုထားသော ဂဏန်း ၄ လုံးကို သက်ဆိုင်ရာအရောင်တူ Highlight လုပ်ပါတယ်။ ပထမပေါင်းအုပ်စုကို မျဉ်းတစ်ကြောင်း၊ ဒုတိယပေါင်းအုပ်စုကို မျဉ်းတစ်ကြောင်း၊ နှိုင်းယှဉ်မှုကို ပြသရန် ချိတ်ဆက်မျဉ်းတစ်ကြောင်း ပထမပေါင်းအုပ်စု (ဥပမာ 1+8) အတွက် မျဉ်းတစ်ကြောင်း၊ ဒုတိယပေါင်းအုပ်စု (ဥပမာ 4+5) အတွက် သီးခြားမျဉ်းတစ်ကြောင်းသာ ဆွဲပါတယ်။ အုပ်စုနှစ်ခုကို ဖြတ်ပြီး မချိတ်ဆက်ပါ။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–2၊ 3–4၊ 5–6၊ 7–8… (စတင် Row 1, 3, 5, 7…)</p><p><strong>Even:</strong> Rows 2–3၊ 4–5၊ 6–7၊ 8–9… (စတင် Row 2, 4, 6, 8…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုစီသည် ၂ တန်းစီ မထပ်ဘဲ ဆက်သွားပြီး တွက်ချက်ရန် Row N နှင့် Row N+1 နှစ်တန်းလုံး ရှိရပါမယ်။</p>',
 
         54: '<p><strong>အုပ်စုတစ်ခုစီတွင် Row N နှင့် Row N+2 ကို အသုံးပြုပြီး နောက်အုပ်စုသို့ စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။</strong></p><p><strong>ပထမအုပ်စု:</strong> Row N ၏ ရာဂဏန်း + Row N ၏ ယူနစ်ဂဏန်း။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကြားတွင် မျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။</p><p><strong>ဒုတိယအုပ်စု:</strong> Row N+2 ၏ ဆယ်ဂဏန်း + Row N+2 ၏ ယူနစ်ဂဏန်း။ ဒီပေါင်းလဒ်ကိုလည်း 10 ဖြင့်စားပြီး အကြွင်းကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကြားတွင်လည်း မျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။ အုပ်စုနှစ်ခု၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1 &amp; 3 (077၊ 387၊ 770):</strong> ပထမအုပ်စု = Row 1 Hundred 0 + Row 1 Unit 7 = 7 ဖြစ်ပါတယ်။ ဒုတိယအုပ်စု = Row 3 Ten 7 + Row 3 Unit 0 = 7 ဖြစ်ပါတယ်။ 7 = 7 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက ဂဏန်း ၄ လုံးလုံးကို အုပ်စုတစ်ခုတည်း၏ အရောင်ဖြင့် Highlight လုပ်ပါတယ်။ ပထမအုပ်စုနှစ်လုံးကို မျဉ်းတစ်ကြောင်း၊ ဒုတိယအုပ်စုနှစ်လုံးကို မျဉ်းတစ်ကြောင်းဖြင့် ချိတ်ပါတယ်။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1 &amp; 3၊ 4 &amp; 6၊ 7 &amp; 9၊ 10 &amp; 12… (စတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2 &amp; 4၊ 5 &amp; 7၊ 8 &amp; 10၊ 11 &amp; 13… (စတင် Row 2, 5, 8, 11…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပြီး အုပ်စုတစ်ခုတွက်ရန် Row N နှင့် Row N+2 နှစ်တန်းလုံး ရှိရပါမယ်။</p>',
@@ -4088,6 +4092,81 @@ function calcM55(all, startIdx) {
                 // Keep the two addition pairs visually separate; never connect across groups.
                 {startRow:n,startDigit:HUNDRED,endRow:n,endDigit:TEN},
                 {startRow:n,startDigit:UNIT,endRow:n+1,endDigit:UNIT}
+            ]
+        });
+    }
+    return results;
+}
+
+
+// ========== M56 LOGIC ==========
+// Sum group: Row N+1 Ten + Row N+1 Unit + Row N+2 Unit.
+// Compare the final digit with Row N Ten.
+// Odd starts: Rows 1–3, 4–6, 7–9...; Even starts: Rows 2–4, 5–7, 8–10...
+function analyzeM56(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM56(numbers, 0),
+        'odd',
+        'M56 Table - Odd (Rows 1–3, 4–6, 7–9, 10–12...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM56(numbers, 1),
+        'even',
+        'M56 Table - Even (Rows 2–4, 5–7, 8–10, 11–13...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m56Container.innerHTML = html;
+}
+
+function calcM56(all, startIdx) {
+    const TEN = 1, UNIT = 2;
+    const results = [];
+    for (let n = startIdx; n + 2 < all.length; n += 3) {
+        const sumDigits = [all[n + 1][TEN], all[n + 1][UNIT], all[n + 2][UNIT]];
+        const sum = sumDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const resultDigit = sum % 10;
+        const targetDigit = all[n][TEN];
+        const targetValue = parseInt(targetDigit, 10);
+        const isMatch = resultDigit === targetValue;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: 'Rows ' + (n + 1) + '–' + (n + 3),
+                detailLines: [
+                    'ပေါင်းအုပ်စု: Row ' + (n + 2) + ' Ten ' + sumDigits[0] +
+                        ' + Row ' + (n + 2) + ' Unit ' + sumDigits[1] +
+                        ' + Row ' + (n + 3) + ' Unit ' + sumDigits[2] +
+                        ' = ' + sum + ' → ' + resultDigit,
+                    'နှိုင်းယှဉ်ဂဏန်း: Row ' + (n + 1) + ' Ten ' + targetDigit,
+                    resultDigit + (isMatch ? ' = ' : ' ≠ ') + targetValue +
+                        ' → ' + (isMatch ? 'MATCH' : 'No match')
+                ],
+                leftLabel: 'ပေါင်းအုပ်စု',
+                leftDigits: sumDigits,
+                leftSum: sum,
+                leftResult: resultDigit,
+                rightLabel: 'နှိုင်းယှဉ်ဂဏန်း',
+                rightDigits: [targetDigit],
+                rightSum: targetValue,
+                rightResult: targetValue
+            },
+            highlights: [
+                {row: n, digit: TEN},
+                {row: n + 1, digit: TEN},
+                {row: n + 1, digit: UNIT},
+                {row: n + 2, digit: UNIT}
+            ],
+            arrows: [
+                // Connect only the three summed digits; the comparison digit stays separate.
+                {startRow: n + 1, startDigit: TEN, endRow: n + 1, endDigit: UNIT},
+                {startRow: n + 1, startDigit: TEN, endRow: n + 2, endDigit: UNIT},
+                {startRow: n + 1, startDigit: UNIT, endRow: n + 2, endDigit: UNIT}
             ]
         });
     }
