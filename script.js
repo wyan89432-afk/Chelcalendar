@@ -1341,21 +1341,43 @@ function calcM71(all, startIdx) {
 // For each starting row N, add Row N Unit + Row N+2 Ten (modulo 10),
 // then compare the result with Row N+3 Unit.
 // Odd starts at Row 1; Even starts at Row 2. Advance N by one row each time.
+function getM72ArrowLayout() {
+    // Match the CSS digit sizes, horizontal gaps, padding, and row heights.
+    // This keeps M72 connector endpoints centered on the correct digits
+    // on phones, tablets, and desktop screens.
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    if (viewportWidth <= 480) {
+        return { digitCenterX: [27.5, 67.5, 107.5], rowHeight: 51 };
+    }
+    if (viewportWidth <= 768) {
+        return { digitCenterX: [35, 83, 131], rowHeight: 60 };
+    }
+    return { digitCenterX: [37.5, 90.5, 143.5], rowHeight: 65 };
+}
+
 function analyzeM72(numbers) {
+    const arrowLayout = getM72ArrowLayout();
+    const renderOptions = {
+        eachMatchIsGroup: true,
+        showCalculations: true,
+        multiColorHighlights: true,
+        digitCenterX: arrowLayout.digitCenterX,
+        rowHeight: arrowLayout.rowHeight
+    };
     let html = '<div class="split-tables">';
     html += renderWithArrows(
         numbers,
         calcM72(numbers, 0),
         'odd',
         'M72 Table - Odd (Rows 1 & 4, 2 & 5, 3 & 6, 4 & 7...)',
-        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+        renderOptions
     );
     html += renderWithArrows(
         numbers,
         calcM72(numbers, 1),
         'even',
         'M72 Table - Even (Rows 2 & 5, 3 & 6, 4 & 7, 5 & 8...)',
-        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+        renderOptions
     );
     html += '</div>';
     m72Container.innerHTML = html;
@@ -1494,8 +1516,8 @@ function renderWithArrows(numbers, results, cssClass, title, options = {}) {
     });
     
     const matches = [...allValidIndices].map(i => results[i]);
-    const digitCenterX = [22.5, 75.5, 128.5];
-    const ROW_HEIGHT = 65;
+    const digitCenterX = options.digitCenterX || [22.5, 75.5, 128.5];
+    const ROW_HEIGHT = options.rowHeight || 65;
     
     let html = `<div class="sub-table ${cssClass}"><h3 class="sub-table-title">${title}</h3><div class="results-grid">`;
     
