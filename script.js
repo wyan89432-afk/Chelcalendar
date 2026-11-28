@@ -824,12 +824,12 @@ function calcM65(all, startIdx) {
             },
             highlights:firstCells.concat(secondCells),
             arrows:[
-                // Group A: one connector for its two digits.
-                {startRow:n + 1,startDigit:TEN,endRow:n,endDigit:UNIT},
-                // Group B: three separate links forming its own triangle.
+                // Group A: one connector for its two digits; draw forward from Row N to Row N+1.
+                {startRow:n,startDigit:UNIT,endRow:n + 1,endDigit:TEN},
+                // Group B: three separate links forming its own triangle; all links draw forward.
                 {startRow:n + 1,startDigit:HUNDRED,endRow:n + 1,endDigit:UNIT},
-                {startRow:n + 1,startDigit:UNIT,endRow:n,endDigit:UNIT},
-                {startRow:n,endDigit:UNIT,startDigit:UNIT,endRow:n + 1,endDigit:HUNDRED}
+                {startRow:n,startDigit:UNIT,endRow:n + 1,endDigit:UNIT},
+                {startRow:n,startDigit:UNIT,endRow:n + 1,endDigit:HUNDRED}
             ]
         });
     }
