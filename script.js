@@ -68,6 +68,7 @@ const m53Container = document.getElementById('m53Container');
 const m54Container = document.getElementById('m54Container');
 const m55Container = document.getElementById('m55Container');
 const m56Container = document.getElementById('m56Container');
+const m57Container = document.getElementById('m57Container');
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyze);
@@ -159,8 +160,83 @@ function analyze() {
     analyzeM54(validNumbers);
     analyzeM55(validNumbers);
     analyzeM56(validNumbers);
+    analyzeM57(validNumbers);
 }
 
+// ========== M57 LOGIC ==========
+// Compare Row N Hundred + Row N+1 Hundred with Row N+2 Ten + Row N+2 Unit.
+// Reduce each sum to its last digit (mod 10). Odd starts at Rows 1–3, 4–6...;
+// Even starts at Rows 2–4, 5–7... . Keep the two digit-pairs connected separately.
+function analyzeM57(numbers) {
+    let html = '<div class="split-tables">';
+    html += renderWithArrows(
+        numbers,
+        calcM57(numbers, 0),
+        'odd',
+        'M57 Table - Odd (Rows 1–3, 4–6, 7–9, 10–12...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += renderWithArrows(
+        numbers,
+        calcM57(numbers, 1),
+        'even',
+        'M57 Table - Even (Rows 2–4, 5–7, 8–10, 11–13...)',
+        { eachMatchIsGroup: true, showCalculations: true, multiColorHighlights: true }
+    );
+    html += '</div>';
+    m57Container.innerHTML = html;
+}
+
+function calcM57(all, startIdx) {
+    const HUNDRED = 0, TEN = 1, UNIT = 2;
+    const results = [];
+    for (let n = startIdx; n + 2 < all.length; n += 3) {
+        const firstDigits = [all[n][HUNDRED], all[n + 1][HUNDRED]];
+        const secondDigits = [all[n + 2][TEN], all[n + 2][UNIT]];
+        const firstSum = firstDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const secondSum = secondDigits.reduce((total, digit) => total + parseInt(digit, 10), 0);
+        const firstResult = firstSum % 10;
+        const secondResult = secondSum % 10;
+        const isMatch = firstResult === secondResult;
+
+        results.push({
+            isMatch,
+            calculation: {
+                groupLabel: 'Rows ' + (n + 1) + '–' + (n + 3),
+                detailLines: [
+                    'ပထမပေါင်းအုပ်စု: Row ' + (n + 1) + ' Hundred ' + firstDigits[0] +
+                        ' + Row ' + (n + 2) + ' Hundred ' + firstDigits[1] +
+                        ' = ' + firstSum + ' → ' + firstResult,
+                    'ဒုတိယပေါင်းအုပ်စု: Row ' + (n + 3) + ' Ten ' + secondDigits[0] +
+                        ' + Row ' + (n + 3) + ' Unit ' + secondDigits[1] +
+                        ' = ' + secondSum + ' → ' + secondResult,
+                    firstResult + (isMatch ? ' = ' : ' ≠ ') + secondResult +
+                        ' → ' + (isMatch ? 'MATCH' : 'No match')
+                ],
+                leftLabel: 'ပထမပေါင်းအုပ်စု',
+                leftDigits: firstDigits,
+                leftSum: firstSum,
+                leftResult: firstResult,
+                rightLabel: 'ဒုတိယပေါင်းအုပ်စု',
+                rightDigits: secondDigits,
+                rightSum: secondSum,
+                rightResult: secondResult
+            },
+            highlights: [
+                {row: n, digit: HUNDRED},
+                {row: n + 1, digit: HUNDRED},
+                {row: n + 2, digit: TEN},
+                {row: n + 2, digit: UNIT}
+            ],
+            arrows: [
+                // One line for the two Hundred digits; a separate line for Row N+2 Ten + Unit.
+                {startRow: n, startDigit: HUNDRED, endRow: n + 1, endDigit: HUNDRED},
+                {startRow: n + 2, startDigit: TEN, endRow: n + 2, endDigit: UNIT}
+            ]
+        });
+    }
+    return results;
+}
 // ========== UTILITIES ==========
 function getOddEvenNumbers(numbers) {
     const oddNumbers = [];   // Rows 1, 3, 5... (index 0, 2, 4...)
@@ -579,10 +655,11 @@ function calcM13(all, startIdx) {
 // ========== USER-FRIENDLY TABLE LOGIC GUIDES ==========
 
 function getTableLogicGuide(title) {
-    const match = title.match(/M(56|55|54|53|52|51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
+    const match = title.match(/M(57|56|55|54|53|52|51|50|49|48|47|46|45|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|23|22-New|22|21|20|19|18|17|16|15|14|13|12|11|10|[1-9])/i);
     if (!match) return '';
     const n = match[1].toLowerCase() === '22-new' ? '22-new' : Number(match[1]);
     const guides = {
+        57: '<p><strong>M57 တွင် Row ၃ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၃ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပထမပေါင်းအုပ်စု:</strong> Row N ၏ Hundred digit နှင့် Row N+1 ၏ Hundred digit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကြားတွင် မျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။</p><p><strong>ဒုတိယပေါင်းအုပ်စု:</strong> Row N+2 ၏ Ten digit နှင့် Unit digit ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်းနှစ်လုံးကြားတွင်လည်း သီးခြားမျဉ်းတစ်ကြောင်း ဆွဲပါတယ်။ ပထမအုပ်စုနှင့် ဒုတိယအုပ်စုကို ဖြတ်ပြီး မချိတ်ဆက်ပါ။ ပေါင်းလဒ်နှစ်ခု၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–3 (184၊ 495၊ 214):</strong> ပထမအုပ်စု = Row 1 Hundred 1 + Row 2 Hundred 4 = 5။ ဒုတိယအုပ်စု = Row 3 Ten 1 + Row 3 Unit 4 = 5။ 5 = 5 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။ 1 နှင့် 4 ကို ပထမမျဉ်းတစ်ကြောင်း၊ Row 3 ရှိ 1 နှင့် 4 ကို ဒုတိယမျဉ်းတစ်ကြောင်းဖြင့် သီးခြားစီ ပြပါတယ်။</p><p>Match ဖြစ်ပါက အသုံးပြုထားသော ဂဏန်း ၄ နေရာလုံးကို အရောင်တူ Highlight လုပ်ပြီး Match အုပ်စုတစ်ခုစီအလိုက် အရောင်ကို Loop လုပ်ပါတယ်။ မျဉ်း ၂ ကြောင်းသာရှိပြီး အုပ်စုနှစ်ခုကို မဆက်သွယ်ပါ။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12… (စတင် Row 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13… (စတင် Row 2, 5, 8, 11…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N၊ Row N+1၊ Row N+2 သုံးတန်းလုံး ရှိရပါမယ်။</p>',
         56: '<p><strong>M56 တွင် Row ၃ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၃ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပေါင်းအုပ်စု:</strong> Row N+1 ၏ Ten + Row N+1 ၏ Unit + Row N+2 ၏ Unit ကို ပေါင်းပါတယ်။ ပေါင်းလဒ် 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ဒီဂဏန်း ၃ လုံးကို အချင်းချင်း မျဉ်း ၃ ကြောင်းဖြင့် ချိတ်ပါတယ်။</p><p><strong>နှိုင်းယှဉ်ဂဏန်း:</strong> Row N ၏ Ten digit တစ်လုံးတည်းကို ယူပြီး ပေါင်းအုပ်စု၏ နောက်ဆုံးဂဏန်းနှင့် နှိုင်းယှဉ်ပါတယ်။ တူညီမှ Match ဖြစ်ပါတယ်။ နှိုင်းယှဉ်ဂဏန်းကို သီးခြား Highlight လုပ်ပြီး ပေါင်းအုပ်စုနှင့် မျဉ်းမချိတ်ပါ။</p><p><strong>ဥပမာ Rows 1–3 (612၊ 077၊ 387):</strong> ပေါင်းအုပ်စု = Row 2 Ten 7 + Row 2 Unit 7 + Row 3 Unit 7 = 21 → 1 ဖြစ်ပါတယ်။ နှိုင်းယှဉ်ဂဏန်း = Row 1 Ten 1 ဖြစ်ပါတယ်။ 1 = 1 ဖြစ်တဲ့အတွက် Match ဖြစ်ပါတယ်။ Row 2 Ten၊ Row 2 Unit၊ Row 3 Unit သုံးလုံးကို မျဉ်း ၃ ကြောင်းနဲ့ ချိတ်ပြီး Row 1 Ten 1 ကိုတော့ သီးခြား Highlight လုပ်ပါတယ်။</p><p>Match ဖြစ်ပါက အသုံးပြုထားသော ဂဏန်း ၄ နေရာလုံးကို အုပ်စုတစ်ခုတည်း၏ အရောင်ဖြင့် Highlight လုပ်ပါတယ်။ ပေါင်းအုပ်စု ဂဏန်း ၃ လုံးသာ မျဉ်းဆွဲပြီး နှိုင်းယှဉ်ဂဏန်းတစ်လုံးကို မျဉ်းမဆွဲပါ။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–3၊ 4–6၊ 7–9၊ 10–12… (နှိုင်းယှဉ် Row စတင်ရာ 1, 4, 7, 10…)</p><p><strong>Even:</strong> Rows 2–4၊ 5–7၊ 8–10၊ 11–13… (နှိုင်းယှဉ် Row စတင်ရာ 2, 5, 8, 11…)</p><p>Odd သည် Row 1 Ten မှ၊ Even သည် Row 2 Ten မှ စပါတယ်။ နောက်အုပ်စုတစ်ခုစီတွင် စတင် Row ကို ၃ တန်းစီ ရွှေ့ပါတယ်။ အုပ်စုတစ်ခုတွက်ရန် Row N၊ Row N+1၊ Row N+2 သုံးတန်းလုံး ရှိရပါမယ်။</p>',
 
         55: '<p><strong>M55 တွင် Row ၂ တန်းစီကို အုပ်စုတစ်ခုဖွဲ့ပြီး နောက်အုပ်စုသို့ ၂ တန်းစီ ရွှေ့တွက်ပါတယ်။</strong></p><p><strong>ပထမပေါင်းအုပ်စု:</strong> အုပ်စုစတင် Row ၏ Hundred + Ten ကို ပေါင်းပါတယ်။ 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။</p><p><strong>ဒုတိယပေါင်းအုပ်စု:</strong> အုပ်စုစတင် Row ၏ Unit + နောက်တစ် Row ၏ Unit ကို ပေါင်းပါတယ်။ ဒီပေါင်းလဒ်လည်း 10 ကျော်ပါက နောက်ဆုံးယူနစ်ဂဏန်း (% 10) ကိုသာ ယူပါတယ်။ ပေါင်းလဒ်နှစ်ခု၏ နောက်ဆုံးဂဏန်းတူညီမှ Match ဖြစ်ပါတယ်။</p><p><strong>ဥပမာ Rows 1–2 (184၊ 495):</strong> ပထမအုပ်စု = Row 1 Hundred 1 + Row 1 Ten 8 = 9။ ဒုတိယအုပ်စု = Row 1 Unit 4 + Row 2 Unit 5 = 9။ 9 = 9 ဖြစ်သောကြောင့် Match ဖြစ်ပါတယ်။</p><p>Match ဖြစ်ပါက အသုံးပြုထားသော ဂဏန်း ၄ လုံးကို သက်ဆိုင်ရာအရောင်တူ Highlight လုပ်ပါတယ်။ ပထမပေါင်းအုပ်စုကို မျဉ်းတစ်ကြောင်း၊ ဒုတိယပေါင်းအုပ်စုကို မျဉ်းတစ်ကြောင်း၊ နှိုင်းယှဉ်မှုကို ပြသရန် ချိတ်ဆက်မျဉ်းတစ်ကြောင်း ပထမပေါင်းအုပ်စု (ဥပမာ 1+8) အတွက် မျဉ်းတစ်ကြောင်း၊ ဒုတိယပေါင်းအုပ်စု (ဥပမာ 4+5) အတွက် သီးခြားမျဉ်းတစ်ကြောင်းသာ ဆွဲပါတယ်။ အုပ်စုနှစ်ခုကို ဖြတ်ပြီး မချိတ်ဆက်ပါ။ Match group တစ်ခုစီ၏ အရောင်ကို Loop လုပ်ပါတယ်။</p><p><strong>Odd:</strong> Rows 1–2၊ 3–4၊ 5–6၊ 7–8… (စတင် Row 1, 3, 5, 7…)</p><p><strong>Even:</strong> Rows 2–3၊ 4–5၊ 6–7၊ 8–9… (စတင် Row 2, 4, 6, 8…)</p><p>Odd သည် Row 1 မှ၊ Even သည် Row 2 မှ စပါတယ်။ အုပ်စုတစ်ခုစီသည် ၂ တန်းစီ မထပ်ဘဲ ဆက်သွားပြီး တွက်ချက်ရန် Row N နှင့် Row N+1 နှစ်တန်းလုံး ရှိရပါမယ်။</p>',
